@@ -4,7 +4,14 @@ from sqlalchemy import CheckConstraint
 
 from app.db.base import Base
 from app.models import MenuItem, Order, Outlet, User
-from app.seed import CATEGORIES, DEMO_USERS, MENU_ITEMS, OUTLETS, SAMPLE_ORDERS
+from app.seed import (
+    CATEGORIES,
+    DEMO_USERS,
+    MENU_ITEMS,
+    OUTLETS,
+    PHOTO_URLS,
+    SAMPLE_ORDERS,
+)
 
 
 def test_seed_defines_required_outlets_and_menu() -> None:
@@ -27,6 +34,13 @@ def test_seed_defines_required_outlets_and_menu() -> None:
         "kitchen": 3,
         "admin": 1,
     }
+    assert set(PHOTO_URLS) == {item[0] for item in MENU_ITEMS}
+    assert len(set(PHOTO_URLS.values())) == len(MENU_ITEMS)
+    assert all(
+        url.startswith("https://images.unsplash.com/photo-")
+        and "w=1200" in url
+        for url in PHOTO_URLS.values()
+    )
 
 
 def test_sample_order_totals_and_late_status_contract() -> None:

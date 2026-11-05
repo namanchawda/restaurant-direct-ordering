@@ -3,8 +3,8 @@ import { AppProviders } from "@/components/AppProviders";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Hyderabad Biryani | Menu",
-  description: "Manage the Hyderabad Biryani menu.",
+  title: "Hyderabad Biryani | Order direct",
+  description: "Fresh biryani and Hyderabadi favorites, delivered from a nearby kitchen.",
 };
 
 export default function RootLayout({
