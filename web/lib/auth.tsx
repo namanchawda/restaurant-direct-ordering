@@ -3,10 +3,17 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api, AuthResponse, clearSession, readSession, saveSession, User } from "@/lib/api";
 
+type OtpVerifyOptions = {
+  name?: string;
+  marketingOptIn?: boolean;
+};
+
 type AuthContextValue = {
   user: User | null;
   ready: boolean;
   login: (phone: string, password: string) => Promise<User>;
+  requestOtp: (phone: string) => Promise<void>;
+  verifyOtp: (phone: string, otp: string, options?: OtpVerifyOptions) => Promise<User>;
   logout: () => void;
 };
 
@@ -53,12 +60,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return result.user;
   }, []);
 
+  const requestOtp = useCallback(async (phone: string) => {
+    await api<{ message: string }>("/auth/otp/request", {
+      method: "POST",
+      body: JSON.stringify({ phone }),
+    });
+  }, []);
+
+  const verifyOtp = useCallback(
+    async (phone: string, otp: string, options: OtpVerifyOptions = {}) => {
+      const body: Record<string, unknown> = { phone, otp };
+      const name = options.name?.trim();
+      if (name) body.name = name;
+      if (options.marketingOptIn !== undefined) {
+        body.marketing_opt_in = options.marketingOptIn;
+      }
+      const result = await api<AuthResponse>("/auth/otp/verify", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      saveSession(result.access_token, result.user);
+      setUser(result.user);
+      return result.user;
+    },
+    [],
+  );
+
   const logout = useCallback(() => {
     clearSession();
     setUser(null);
   }, []);
 
-  const value = useMemo(() => ({ user, ready, login, logout }), [user, ready, login, logout]);
+  const value = useMemo(
+    () => ({ user, ready, login, requestOtp, verifyOtp, logout }),
+    [user, ready, login, requestOtp, verifyOtp, logout],
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

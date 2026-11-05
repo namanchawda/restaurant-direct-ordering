@@ -304,6 +304,18 @@ async def test_server_pricing_payment_and_out_of_radius(
         headers=_auth(customer["token"]),
     )
     assert card_failure.json()["payment_status"] == "failed"
+    switched = await api_client.post(
+        f"/orders/{card_order.json()['public_id']}/pay",
+        json={"upi_id": "customer@ok"},
+        headers=_auth(customer["token"]),
+    )
+    assert switched.status_code == 200, switched.text
+    assert switched.json()["payment_status"] == "paid"
+    switched_detail = await api_client.get(
+        f"/orders/{card_order.json()['public_id']}",
+        headers=_auth(customer["token"]),
+    )
+    assert switched_detail.json()["payment_method"] == "upi"
 
 
 @pytest.mark.asyncio(loop_scope="module")

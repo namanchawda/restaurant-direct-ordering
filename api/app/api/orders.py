@@ -281,16 +281,25 @@ async def pay_order(
         raise HTTPException(status_code=404, detail="Order not found.")
     if order.payment_status == "paid":
         return {"public_id": order.public_id, "payment_status": "paid"}
-    if order.payment_method == "upi":
-        if payload.upi_id is None or payload.card_number is not None:
-            raise HTTPException(status_code=422, detail="Provide a UPI ID for this payment.")
-        order.payment_status = "failed" if payload.upi_id.endswith("@fail") else "paid"
-    else:
-        if payload.card_number is None or payload.upi_id is not None:
-            raise HTTPException(status_code=422, detail="Provide a card number for this payment.")
-        card_number = re.sub(r"\s+", "", payload.card_number)
+    upi_id = payload.upi_id.strip() if payload.upi_id else None
+    card_number = re.sub(r"\s+", "", payload.card_number) if payload.card_number else None
+    if upi_id and card_number:
+        raise HTTPException(
+            status_code=422,
+            detail="Provide either a UPI ID or a card number, not both.",
+        )
+    if upi_id:
+        order.payment_method = "upi"
+        order.payment_status = "failed" if upi_id.endswith("@fail") else "paid"
+    elif card_number:
+        order.payment_method = "card"
         order.payment_status = (
             "failed" if card_number == "4000000000000002" else "paid"
+        )
+    else:
+        raise HTTPException(
+            status_code=422,
+            detail="Provide a UPI ID or a card number for this payment.",
         )
     await session.commit()
     await session.refresh(order)

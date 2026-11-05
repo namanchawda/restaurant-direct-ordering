@@ -10,6 +10,7 @@ import {
   Skeleton,
   useToast,
 } from "@/components/ui";
+import { AccountMenu } from "@/components/customer/AccountMenu";
 import { useCart } from "@/components/customer/CartProvider";
 import { api } from "@/lib/api";
 import { cartItemCount } from "@/lib/cart";
@@ -174,9 +175,12 @@ export function OutletPicker() {
           <span className="brand-mark" aria-hidden="true">H</span>
           <span>Hyderabad Biryani</span>
         </Link>
-        {cart.lines.length > 0 && (
-          <span className="picker-cart-note">{cartItemCount(cart.lines)} items in your cart</span>
-        )}
+        <div className="header-end">
+          {cart.lines.length > 0 && (
+            <span className="picker-cart-note">{cartItemCount(cart.lines)} items in your cart</span>
+          )}
+          <AccountMenu />
+        </div>
       </header>
 
       <div className="picker-layout">

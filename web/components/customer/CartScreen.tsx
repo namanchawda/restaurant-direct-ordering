@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button, Card, EmptyState, Price, Textarea } from "@/components/ui";
+import { AccountMenu } from "@/components/customer/AccountMenu";
 import { useCart } from "@/components/customer/CartProvider";
 import { FoodImage } from "@/components/customer/FoodImage";
 import { QuantityStepper } from "@/components/customer/MenuScreen";
@@ -104,10 +105,13 @@ export function CartScreen() {
         <Link href={cart.outletId ? `/outlet/${cart.outletId}` : "/"} className="back-link">
           <span aria-hidden="true">←</span> Menu
         </Link>
-        <Link className="brand-lockup" href="/" aria-label="Hyderabad Biryani home">
-          <span className="brand-mark" aria-hidden="true">H</span>
-          <span>Hyderabad Biryani</span>
-        </Link>
+        <div className="header-end">
+          <Link className="brand-lockup" href="/" aria-label="Hyderabad Biryani home">
+            <span className="brand-mark" aria-hidden="true">H</span>
+            <span>Hyderabad Biryani</span>
+          </Link>
+          <AccountMenu />
+        </div>
       </header>
 
       <div className="cart-page-heading">

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { Button, Card, Price, Skeleton, VegMark, useToast } from "@/components/ui";
+import { AccountMenu } from "@/components/customer/AccountMenu";
 import { CartSummary } from "@/components/customer/CartSummary";
 import { useCart } from "@/components/customer/CartProvider";
 import { FoodImage } from "@/components/customer/FoodImage";
@@ -438,6 +439,7 @@ export function MenuScreen({ outletId }: { outletId: string }) {
                   <span aria-hidden="true">{menu.outlet.is_open ? "●" : "○"}</span>
                   {menu.outlet.is_open ? "Open now" : "Closed"}
                 </span>
+                <AccountMenu />
                 <Link className="change-link" href="/?change=1">Change</Link>
               </div>
             </div>

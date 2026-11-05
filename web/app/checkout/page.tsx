@@ -1,5 +1,5 @@
-import { CheckoutPlaceholder } from "@/components/customer/CheckoutPlaceholder";
+import { CheckoutScreen } from "@/components/customer/CheckoutScreen";
 
 export default function CheckoutPage() {
-  return <CheckoutPlaceholder />;
+  return <CheckoutScreen />;
 }
