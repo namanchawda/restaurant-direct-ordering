@@ -10,3 +10,4 @@
 - **Kitchen display:** Use large, high-contrast type readable from 2 metres; mark late orders with color and text; support inexpensive Android tablets without heavy animation.
 - **Secrets:** Never commit secrets. Use `.env` files and provide a corresponding `.env.example`.
 - **Scope:** Keep implementation aligned with the brief's Core build slice; favor simple solutions suitable for the 8-week budget.
+- Save all Playwright screenshots inside .playwright-mcp/ only, never in the project root or in /web. Do not leave temporary files in the repo.
