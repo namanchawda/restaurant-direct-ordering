@@ -24,3 +24,7 @@ web/*.png
 *.log
 .venv*/
 web/*.png
+
+*.png
+!web/public/**/*.png
+!docs/**/*.png
