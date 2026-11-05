@@ -17,7 +17,7 @@ export class ApiError extends Error {
   }
 }
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "");
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "");
 const TOKEN_KEY = "hyderabad-biryani-token";
 const USER_KEY = "hyderabad-biryani-user";
 

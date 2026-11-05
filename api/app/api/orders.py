@@ -1,10 +1,9 @@
 from datetime import UTC, datetime
-from math import ceil
 import re
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -12,12 +11,14 @@ from sqlalchemy.orm import selectinload
 from app.api.deps import get_db, require_role
 from app.api.admin import _set_availability
 from app.models import (
+    Category,
     ItemAddon,
     MenuItem,
     Order,
     OrderItem,
     OrderStatusEvent,
     Outlet,
+    OutletItemAvailability,
     User,
 )
 from app.schemas import (
@@ -30,18 +31,16 @@ from app.schemas import (
 from app.services.events import publish_order_event
 from app.services.geo import distance_km
 from app.services.menu import category_window_status
+from app.services.order_payload import (
+    ACTIVE_STATUSES,
+    KITCHEN_VISIBLE_STATUSES,
+    order_load_options,
+    serialize_order,
+)
 from app.services.prep_time import calculate_promised_at
 
 router = APIRouter(tags=["orders"])
 kitchen_router = APIRouter(prefix="/kitchen", tags=["kitchen"])
-ACTIVE_STATUSES = (
-    "placed",
-    "accepted",
-    "preparing",
-    "ready_for_pickup",
-    "handed_to_rider",
-)
-LATE_STATUSES = ("placed", "accepted", "preparing")
 TRANSITIONS = {
     "placed": {"accepted", "cancelled"},
     "accepted": {"preparing", "cancelled"},
@@ -49,65 +48,15 @@ TRANSITIONS = {
     "ready_for_pickup": {"handed_to_rider"},
     "handed_to_rider": {"delivered"},
 }
-def _order_options():
-    return (
-        selectinload(Order.items),
-        selectinload(Order.status_events),
-    )
 
 
 def _now_utc() -> datetime:
     return datetime.now(UTC)
 
 
-def _late_values(order: Order) -> tuple[bool, int]:
-    is_late = order.status in LATE_STATUSES and _now_utc() > order.promised_at
-    minutes_late = (
-        max(1, ceil((_now_utc() - order.promised_at).total_seconds() / 60))
-        if is_late
-        else 0
-    )
-    return is_late, minutes_late
-
-
-def _order_data(order: Order) -> dict[str, object]:
-    is_late, minutes_late = _late_values(order)
-    gst_included = round(order.total_inr * 5 / 105)
-    return {
-        "public_id": order.public_id,
-        "outlet_id": str(order.outlet_id),
-        "status": order.status,
-        "payment_method": order.payment_method,
-        "payment_status": order.payment_status,
-        "total_inr": order.total_inr,
-        "gst_included_inr": gst_included,
-        "placed_at": order.placed_at,
-        "promised_at": order.promised_at,
-        "is_late": is_late,
-        "minutes_late": minutes_late,
-        "delivery_address": order.delivery_address,
-        "notes": order.notes,
-        "cancellation_reason": order.cancellation_reason,
-        "price_note": "incl. 5% GST",
-        "items": [
-            {
-                "name": item.name,
-                "unit_price_inr": item.unit_price_inr,
-                "quantity": item.quantity,
-                "addons": item.addons,
-            }
-            for item in order.items
-        ],
-        "status_history": [
-            {"status": event.status, "at": event.at}
-            for event in sorted(order.status_events, key=lambda event: event.at)
-        ],
-    }
-
-
 async def _get_order(session: AsyncSession, public_id: str) -> Order:
     order = await session.scalar(
-        select(Order).options(*_order_options()).where(Order.public_id == public_id)
+        select(Order).options(*order_load_options()).where(Order.public_id == public_id)
     )
     if order is None:
         raise HTTPException(status_code=404, detail="Order not found.")
@@ -263,10 +212,7 @@ async def create_order(
     if order is None:
         raise HTTPException(status_code=503, detail="Could not allocate an order number. Please retry.")
     order = await _get_order(session, order.public_id)
-    await publish_order_event(order)
-    return {
-        **_order_data(order),
-    }
+    return serialize_order(order)
 
 
 @router.post("/orders/{public_id}/pay")
@@ -302,7 +248,7 @@ async def pay_order(
             detail="Provide a UPI ID or a card number for this payment.",
         )
     await session.commit()
-    await session.refresh(order)
+    order = await _get_order(session, public_id)
     await publish_order_event(order)
     return {
         "public_id": order.public_id,
@@ -319,13 +265,13 @@ async def my_orders(
     orders = (
         await session.scalars(
             select(Order)
-            .options(*_order_options())
+            .options(*order_load_options())
             .where(Order.user_id == user.id)
             .order_by(Order.placed_at.desc())
             .limit(limit)
         )
     ).all()
-    return [_order_data(order) for order in orders]
+    return [serialize_order(order) for order in orders]
 
 
 @router.get("/orders/{public_id}")
@@ -337,7 +283,7 @@ async def get_order(
     order = await _get_order(session, public_id)
     if order.user_id != user.id:
         raise HTTPException(status_code=404, detail="Order not found.")
-    return _order_data(order)
+    return serialize_order(order)
 
 
 @kitchen_router.get("/orders")
@@ -348,16 +294,16 @@ async def kitchen_orders(
     orders = (
         await session.scalars(
             select(Order)
-            .options(*_order_options())
+            .options(*order_load_options())
             .where(
                 Order.outlet_id == user.outlet_id,
                 Order.payment_status == "paid",
-                Order.status.in_(ACTIVE_STATUSES),
+                Order.status.in_(KITCHEN_VISIBLE_STATUSES),
             )
-            .order_by(Order.placed_at.asc())
+            .order_by(Order.promised_at.asc(), Order.placed_at.asc())
         )
     ).all()
-    return [_order_data(order) for order in orders]
+    return [serialize_order(order) for order in orders]
 
 
 @kitchen_router.patch("/orders/{public_id}/status")
@@ -380,8 +326,8 @@ async def update_order_status(
     order.status_events.append(OrderStatusEvent(status=payload.status, at=_now_utc()))
     await session.commit()
     order = await _get_order(session, public_id)
-    await publish_order_event(order)
-    return _order_data(order)
+    await publish_order_event(order, event_type="order.updated")
+    return serialize_order(order)
 
 
 @kitchen_router.patch("/orders/{public_id}/override")
@@ -405,8 +351,63 @@ async def override_promised_time(
     )
     await session.commit()
     order = await _get_order(session, public_id)
-    await publish_order_event(order)
-    return _order_data(order)
+    await publish_order_event(order, event_type="order.updated")
+    return serialize_order(order)
+
+
+@kitchen_router.post("/orders/{public_id}/acknowledge-escalation")
+async def acknowledge_escalation(
+    public_id: str,
+    user: User = Depends(require_role("kitchen")),
+    session: AsyncSession = Depends(get_db),
+) -> dict[str, object]:
+    order = await _get_order(session, public_id)
+    if order.outlet_id != user.outlet_id:
+        raise HTTPException(status_code=404, detail="Order not found.")
+    if order.escalated_at is None:
+        raise HTTPException(status_code=409, detail="This order has not been escalated.")
+    order.escalation_acknowledged_at = _now_utc()
+    await session.commit()
+    order = await _get_order(session, public_id)
+    await publish_order_event(order, event_type="order.updated")
+    return serialize_order(order)
+
+
+@kitchen_router.get("/items")
+async def kitchen_items(
+    user: User = Depends(require_role("kitchen")),
+    session: AsyncSession = Depends(get_db),
+) -> list[dict[str, object]]:
+    rows = (
+        await session.execute(
+            select(
+                MenuItem,
+                Category.name.label("category_name"),
+                OutletItemAvailability.available,
+            )
+            .join(Category, Category.id == MenuItem.category_id)
+            .outerjoin(
+                OutletItemAvailability,
+                and_(
+                    OutletItemAvailability.item_id == MenuItem.id,
+                    OutletItemAvailability.outlet_id == user.outlet_id,
+                ),
+            )
+            .where(MenuItem.active.is_(True))
+            .order_by(Category.sort_order, MenuItem.sort_order, MenuItem.name)
+        )
+    ).all()
+    return [
+        {
+            "id": str(item.id),
+            "name": item.name,
+            "category": category_name,
+            "available": bool(available),
+            "is_veg": item.is_veg,
+            "spice_level": item.spice_level,
+        }
+        for item, category_name, available in rows
+    ]
 
 
 @kitchen_router.patch("/outlets/{outlet_id}/items/{item_id}/availability")

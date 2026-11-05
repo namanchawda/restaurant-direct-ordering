@@ -144,6 +144,16 @@ export function OrderStatusScreen({ publicId }: { publicId: string }) {
         </Card>
       ) : (
         <>
+          {order.escalated_at && !final && (
+            <div className="order-escalation-note" role="status">
+              <strong>We’ve alerted the kitchen.</strong>
+              <span>
+                They’ve given a new estimate of {formatTime(order.promised_at)}. Your order
+                is still with them, and this page will update when it moves on.
+              </span>
+            </div>
+          )}
+
           {order.is_late && (
             <div className="order-late-note" role="status">
               <strong>

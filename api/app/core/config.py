@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     jwt_secret: str = "replace-this-development-secret-before-deployment"
     jwt_expiry_minutes: int = Field(default=60, gt=0)
     mock_otp: str = "123456"
+    sse_heartbeat_seconds: int = Field(default=15, ge=5)
+    sse_retry_ms: int = Field(default=3000, ge=500)
+    escalation_minutes: int = Field(default=10, ge=1)
+    escalation_extend_minutes: int = Field(default=10, ge=1)
+    escalation_check_interval_seconds: int = Field(default=30, ge=5)
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"

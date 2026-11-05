@@ -1,6 +1,6 @@
 # Hyderabad Biryani direct ordering
 
-Monorepo for the Core build slice: a Next.js ordering-app shell and a FastAPI service. The staff authentication foundation and central menu CMS are implemented; customer ordering, payment, and the kitchen display remain future work.
+Monorepo for the Core build slice: a Next.js ordering app and a FastAPI service. Customer ordering, mocked payment, the staff authentication foundation, the central menu CMS, the live kitchen display, and customer order tracking are implemented.
 
 ## Requirements
 
@@ -48,7 +48,8 @@ Open <http://localhost:3000>.
 
 - Sign in at `/login` with the development-only admin or kitchen credentials in [api/README.md](api/README.md).
 - Admin menu management is at `/admin/menu`, with item create/edit at `/admin/menu/new` and `/admin/menu/{id}`.
-- Kitchen staff are directed to `/kitchen`, currently a placeholder for the future kitchen display.
+- Kitchen staff use `/kitchen` for the live board and `/kitchen/items` to pause items. The board uses SSE with polling fallback, a new-order chime, large-text and high-contrast settings, explicit preparation steps, promise-time overrides, and escalation acknowledgement.
+- Customers track orders at `/order/{public_id}`; the page updates over SSE, falls back to polling, and shows a revised estimate when the kitchen escalates a late order.
 - Configure the API origin in `web\.env.local`; the checked-in `web\.env.example` uses `http://localhost:8000`.
 - For this development foundation, the JWT and current user are stored in browser `localStorage`. This is a deliberate simplification, not a production session design; production should use secure, HttpOnly cookies and appropriate CSRF protections.
 - The menu's Delete action deactivates an item with the API's `active` flag rather than permanently deleting it, so it can be restored later.
@@ -58,4 +59,6 @@ Open <http://localhost:3000>.
 
 - API dependencies and Python environment are isolated under `api`.
 - The web app uses the App Router, TypeScript, Tailwind CSS, and ESLint.
+- Realtime updates use a single-instance, in-process SSE broker. Run one API worker for this build; see [api/README.md](api/README.md) for the shared pub/sub note before scaling horizontally.
+- The API load test in `api/scripts/load_test.py` creates real paid orders through the public API. Use a disposable database for long soak runs.
 - Never put real payment credentials or other secrets in source control. `.env` files are ignored.

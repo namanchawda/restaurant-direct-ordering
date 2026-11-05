@@ -1,15 +1,31 @@
+import asyncio
+from contextlib import asynccontextmanager, suppress
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api import admin, auth, orders, outlets
+from app.api import admin, auth, live, orders, outlets
 from app.core.config import get_settings
+from app.services.escalation import escalation_loop
 
 settings = get_settings()
 
-app = FastAPI(title="Hyderabad Biryani API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    escalation_task = asyncio.create_task(escalation_loop())
+    try:
+        yield
+    finally:
+        escalation_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await escalation_task
+
+
+app = FastAPI(title="Hyderabad Biryani API", version="0.1.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -22,6 +38,7 @@ app.include_router(auth.router)
 app.include_router(outlets.router)
 app.include_router(orders.router)
 app.include_router(orders.kitchen_router)
+app.include_router(live.router)
 app.include_router(admin.router)
 
 

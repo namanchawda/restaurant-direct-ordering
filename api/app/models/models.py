@@ -265,6 +265,10 @@ class Order(TimestampMixin, Base):
     promised_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     ai_estimate_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     manager_override_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    escalated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    escalation_acknowledged_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     outlet: Mapped["Outlet"] = relationship(back_populates="orders")
     user: Mapped["User"] = relationship(back_populates="orders")

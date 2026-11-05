@@ -40,6 +40,11 @@ export type Order = {
   delivery_address: string | null;
   notes: string | null;
   cancellation_reason: string | null;
+  customer_first_name: string | null;
+  manager_override_minutes: number | null;
+  escalated_at: string | null;
+  escalation_acknowledged_at: string | null;
+  is_escalated: boolean;
   price_note: string;
   items: OrderItem[];
   status_history: OrderStatusEvent[];

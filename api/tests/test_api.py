@@ -1,5 +1,5 @@
 from collections.abc import AsyncIterator
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 import secrets
 
 import httpx
@@ -11,6 +11,8 @@ from app.main import app
 from app.db.session import get_session_factory
 from app.models import Addon, CityPrice, ItemAddon, ItemVariant, MenuItem, Order, Outlet, User
 from app.seed import seed_data
+from app.services import events
+from app.services.escalation import run_escalation_once
 
 
 @pytest_asyncio.fixture(scope="module", loop_scope="module")
@@ -379,3 +381,97 @@ async def test_kitchen_transitions_override_and_late_order(
     assert late.status_code == 200
     assert late.json()["is_late"] is True
     assert late.json()["minutes_late"] >= 4
+
+@pytest.mark.asyncio(loop_scope="module")
+async def test_live_stream_tokens_kitchen_items_and_escalation(
+    api_client: httpx.AsyncClient, customer: dict[str, str]
+) -> None:
+    kitchen_token = await _login(api_client, "9000000011", "KondapurKitchen!2026")
+    outlet = await _outlet("Kondapur")
+
+    created = await _create_order(api_client, customer)
+    assert created.status_code == 201, created.text
+    public_id = created.json()["public_id"]
+
+    before_pay = events.latest_event_id(events.outlet_channel(outlet.id))
+    paid = await api_client.post(
+        f"/orders/{public_id}/pay",
+        json={"upi_id": "customer@ok"},
+        headers=_auth(customer["token"]),
+    )
+    assert paid.status_code == 200, paid.text
+    after_pay = events.latest_event_id(events.outlet_channel(outlet.id))
+    assert after_pay is not None
+    assert before_pay is None or after_pay > before_pay
+
+    items = await api_client.get("/kitchen/items", headers=_auth(kitchen_token))
+    assert items.status_code == 200, items.text
+    assert any(
+        row["name"] == "Chicken dum biryani" and row["available"] is True
+        for row in items.json()
+    )
+
+    kitchen_stream = await api_client.post(
+        "/kitchen/stream-token", headers=_auth(kitchen_token)
+    )
+    assert kitchen_stream.status_code == 200, kitchen_stream.text
+    kitchen_stream_token = kitchen_stream.json()["token"]
+    assert kitchen_stream.json()["channel"] == events.outlet_channel(outlet.id)
+
+    order_stream = await api_client.post(
+        f"/orders/{public_id}/stream-token", headers=_auth(customer["token"])
+    )
+    assert order_stream.status_code == 200, order_stream.text
+    order_stream_token = order_stream.json()["token"]
+
+    wrong_scope = await api_client.get(
+        f"/kitchen/stream?token={order_stream_token}"
+    )
+    assert wrong_scope.status_code == 401
+    access_token_in_query = await api_client.get(
+        f"/kitchen/stream?token={customer['token']}"
+    )
+    assert access_token_in_query.status_code == 401
+    order_wrong_scope = await api_client.get(
+        f"/orders/{public_id}/stream?token={kitchen_stream_token}"
+    )
+    assert order_wrong_scope.status_code == 401
+
+    async with get_session_factory()() as session:
+        order = await session.scalar(select(Order).where(Order.public_id == public_id))
+        order.promised_at = datetime.now(UTC) - timedelta(minutes=15)
+        await session.commit()
+        escalated = await run_escalation_once(
+            session, escalation_minutes=10, extend_minutes=7
+        )
+    assert public_id in {order.public_id for order in escalated}
+
+    async with get_session_factory()() as session:
+        order = await session.scalar(select(Order).where(Order.public_id == public_id))
+        assert order.escalated_at is not None
+        assert order.escalation_acknowledged_at is None
+        assert order.promised_at > datetime.now(UTC)
+
+    kitchen_orders = await api_client.get(
+        "/kitchen/orders", headers=_auth(kitchen_token)
+    )
+    row = next(
+        order for order in kitchen_orders.json() if order["public_id"] == public_id
+    )
+    assert row["is_escalated"] is True
+    assert row["customer_first_name"] == "API"
+
+    acknowledged = await api_client.post(
+        f"/kitchen/orders/{public_id}/acknowledge-escalation",
+        headers=_auth(kitchen_token),
+    )
+    assert acknowledged.status_code == 200, acknowledged.text
+    assert acknowledged.json()["is_escalated"] is False
+
+    async with get_session_factory()() as session:
+        again = await run_escalation_once(session)
+    assert public_id not in {order.public_id for order in again}
+
+    stats = await api_client.get("/kitchen/stream/stats", headers=_auth(kitchen_token))
+    assert stats.status_code == 200
+    assert "subscribers" in stats.json()
