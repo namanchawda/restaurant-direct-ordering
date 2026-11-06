@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/test-cart.mjs && node scripts/test-payment.mjs && node scripts/test-checkout.mjs && node scripts/test-kitchen.mjs && node scripts/test-live-events.mjs",
+    "test": "node scripts/test-cart.mjs && node scripts/test-payment.mjs && node scripts/test-checkout.mjs && node scripts/test-kitchen.mjs && node scripts/test-live-events.mjs && node scripts/test-order-again.mjs",
     "test:cart": "node scripts/test-cart.mjs",
     "test:payment": "node scripts/test-payment.mjs",
     "test:checkout": "node scripts/test-checkout.mjs",

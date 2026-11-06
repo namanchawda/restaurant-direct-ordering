@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { api, describeApiError } from "@/lib/api";
 import type { OutletResult } from "@/lib/customer";
 import styles from "./OperationsDashboard.module.css";
 
@@ -74,7 +74,7 @@ function averagePrep(value: number | null): string {
 }
 
 function requestError(error: unknown): string {
-  return error instanceof Error ? error.message : "The dashboard could not load.";
+  return describeApiError(error, "The dashboard could not load. Try again in a moment.");
 }
 
 function Metric({

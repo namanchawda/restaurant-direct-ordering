@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { api, Category, jsonBody } from "@/lib/api";
+import { api, describeApiError, Category, jsonBody } from "@/lib/api";
 import { Button, Dialog, Input, useToast } from "@/components/ui";
 
 type CategoryDraft = {
@@ -68,7 +68,7 @@ export function CategoryManager({
       await onChanged();
       toast("Category saved.", "success");
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Could not save this category.", "error");
+      toast(describeApiError(error, "Could not save this category."), "error");
     } finally {
       setSaving(false);
     }
@@ -103,7 +103,7 @@ export function CategoryManager({
       await onChanged();
       toast("Category added.", "success");
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Could not add this category.", "error");
+      toast(describeApiError(error, "Could not add this category."), "error");
     } finally {
       setSaving(false);
     }
@@ -129,7 +129,7 @@ export function CategoryManager({
       await onChanged();
       toast("Category order updated.", "success");
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Could not reorder categories.", "error");
+      toast(describeApiError(error, "Could not reorder categories."), "error");
       await onChanged();
     } finally {
       setSaving(false);

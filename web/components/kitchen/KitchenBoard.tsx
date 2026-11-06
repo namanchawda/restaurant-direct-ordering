@@ -4,7 +4,7 @@ import Link from "next/link";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Dialog, Input, Select } from "@/components/ui";
 import { useToast } from "@/components/ui";
-import { api } from "@/lib/api";
+import { api, describeApiError } from "@/lib/api";
 import { formatTime } from "@/lib/format";
 import {
   KITCHEN_COLUMNS,
@@ -239,9 +239,7 @@ export function KitchenBoard() {
         }
       } catch (reason) {
         toast(
-          reason instanceof Error
-            ? reason.message
-            : "Could not update the order.",
+          describeApiError(reason, "Could not update the order."),
           "error",
         );
       } finally {
@@ -263,9 +261,7 @@ export function KitchenBoard() {
         toast("Escalation acknowledged.", "success");
       } catch (reason) {
         toast(
-          reason instanceof Error
-            ? reason.message
-            : "Could not acknowledge the alert.",
+          describeApiError(reason, "Could not acknowledge the alert."),
           "error",
         );
       } finally {
@@ -291,9 +287,7 @@ export function KitchenBoard() {
         toast("Promise time updated.", "success");
       } catch (reason) {
         toast(
-          reason instanceof Error
-            ? reason.message
-            : "Could not update the promise time.",
+          describeApiError(reason, "Could not update the promise time."),
           "error",
         );
       } finally {
@@ -322,9 +316,7 @@ export function KitchenBoard() {
       toast("Order cancelled.", "success");
     } catch (requestError) {
       toast(
-        requestError instanceof Error
-          ? requestError.message
-          : "Could not cancel the order.",
+        describeApiError(requestError, "Could not cancel the order."),
         "error",
       );
     } finally {

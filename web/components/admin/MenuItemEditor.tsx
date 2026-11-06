@@ -12,6 +12,7 @@ import {
   MenuItem,
   Variant,
   api,
+  describeApiError,
   jsonBody,
 } from "@/lib/api";
 import {
@@ -139,7 +140,7 @@ export function MenuItemEditor({ itemId }: { itemId?: string }) {
       setInitialValues(nextValues);
       loaded.current = true;
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : "Could not load item details.");
+      setLoadError(describeApiError(error, "Could not load item details."));
     } finally {
       setLoading(false);
     }
@@ -267,10 +268,10 @@ export function MenuItemEditor({ itemId }: { itemId?: string }) {
         setFormError(
           Object.keys(error.fields).length
             ? "Some fields need attention. Review the messages below."
-            : error.message,
+            : describeApiError(error),
         );
       } else {
-        setFormError(error instanceof Error ? error.message : "Could not save this item.");
+        setFormError(describeApiError(error, "Could not save this item."));
       }
     } finally {
       setSubmitting(false);
@@ -295,7 +296,7 @@ export function MenuItemEditor({ itemId }: { itemId?: string }) {
       setNewAddonPrice("");
       toast("Add-on created and linked.", "success");
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Could not create this add-on.", "error");
+      toast(describeApiError(error, "Could not create this add-on."), "error");
     } finally {
       setAddingAddon(false);
     }

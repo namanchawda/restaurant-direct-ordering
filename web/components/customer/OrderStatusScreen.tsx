@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Badge, Button, Card, EmptyState, Price } from "@/components/ui";
 import { AccountMenu } from "@/components/customer/AccountMenu";
 import { useOrderLive } from "@/components/customer/useOrderLive";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, describeApiError } from "@/lib/api";
 import type { OutletResult } from "@/lib/customer";
 import {
   formatDateTime,
@@ -88,7 +88,7 @@ export function OrderStatusScreen({ publicId }: { publicId: string }) {
               ? "Open checkout with your cart to sign in with the phone number used for this order."
               : missing
                 ? "Check the order link or open your order history."
-                : error?.message ?? "Check your connection and try again."
+                : describeApiError(error, "Check your connection and try again.")
           }
           action={
             signedOut ? (

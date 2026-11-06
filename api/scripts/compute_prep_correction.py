@@ -1,6 +1,11 @@
 """Report outlet prep-history medians without changing data."""
 import asyncio
+import sys
+from pathlib import Path
 from statistics import median
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload

@@ -302,7 +302,7 @@ async def test_server_pricing_payment_and_out_of_radius(
     assert card_order.status_code == 201, card_order.text
     card_failure = await api_client.post(
         f"/orders/{card_order.json()['public_id']}/pay",
-        json={"card_number": "4000000000000002", "cvv": "123"},
+        json={"card_number": "4000000000000002"},
         headers=_auth(customer["token"]),
     )
     assert card_failure.json()["payment_status"] == "failed"

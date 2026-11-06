@@ -8,7 +8,7 @@ import { AccountMenu } from "@/components/customer/AccountMenu";
 import { CartSummary } from "@/components/customer/CartSummary";
 import { useCart } from "@/components/customer/CartProvider";
 import { FoodImage } from "@/components/customer/FoodImage";
-import { api } from "@/lib/api";
+import { api, describeApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import {
   cartItemCount,
@@ -367,9 +367,7 @@ export function MenuScreen({ outletId }: { outletId: string }) {
       } catch (requestError) {
         if (!active) return;
         setMenu(null);
-        setError(
-          requestError instanceof Error ? requestError.message : "We couldn’t load this menu.",
-        );
+        setError(describeApiError(requestError, "We couldn’t load this menu."));
       } finally {
         if (active) setLoading(false);
       }
@@ -401,7 +399,7 @@ export function MenuScreen({ outletId }: { outletId: string }) {
         if (active) {
           setSuggestionFailure({
             key: suggestionKey,
-            message: error instanceof Error ? error.message : "Saved dishes couldn’t load.",
+            message: describeApiError(error, "Saved dishes couldn’t load."),
           });
         }
       });

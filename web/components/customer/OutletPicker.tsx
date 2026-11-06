@@ -12,7 +12,7 @@ import {
 } from "@/components/ui";
 import { AccountMenu } from "@/components/customer/AccountMenu";
 import { useCart } from "@/components/customer/CartProvider";
-import { api } from "@/lib/api";
+import { api, describeApiError } from "@/lib/api";
 import { cartItemCount } from "@/lib/cart";
 import {
   HYDERABAD_AREAS,
@@ -78,9 +78,7 @@ export function OutletPicker() {
         if (active) {
           setOutlets([]);
           setError(
-            requestError instanceof Error
-              ? requestError.message
-              : "We couldn’t load nearby kitchens.",
+            describeApiError(requestError, "We couldn’t load nearby kitchens."),
           );
         }
       })

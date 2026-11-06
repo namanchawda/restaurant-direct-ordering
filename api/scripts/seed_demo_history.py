@@ -1,7 +1,12 @@
 """Opt-in demo history generator. Use --confirm; --remove deletes only 7000 users/orders."""
 import argparse
 import asyncio
+import sys
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from sqlalchemy import delete, select
 

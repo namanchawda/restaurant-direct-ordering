@@ -7,7 +7,7 @@ import { AccountMenu } from "@/components/customer/AccountMenu";
 import { useCart } from "@/components/customer/CartProvider";
 import { FoodImage } from "@/components/customer/FoodImage";
 import { QuantityStepper } from "@/components/customer/MenuScreen";
-import { api } from "@/lib/api";
+import { api, describeApiError } from "@/lib/api";
 import type { OutletMenu } from "@/lib/customer";
 import {
   cartItemCount,
@@ -81,9 +81,7 @@ export function CartScreen() {
       } catch (requestError) {
         if (!active) return;
         setMenuError(
-          requestError instanceof Error
-            ? requestError.message
-            : "We couldn’t verify the latest menu.",
+          describeApiError(requestError, "We couldn’t verify the latest menu."),
         );
       }
     };

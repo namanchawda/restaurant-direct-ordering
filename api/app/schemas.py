@@ -52,7 +52,6 @@ class OrderCreate(APIModel):
 class PaymentRequest(APIModel):
     upi_id: Annotated[str | None, Field(default=None, max_length=120)]
     card_number: Annotated[str | None, Field(default=None, max_length=32)]
-    cvv: Annotated[str | None, Field(default=None, max_length=4)]
 
 
 class StatusUpdate(APIModel):

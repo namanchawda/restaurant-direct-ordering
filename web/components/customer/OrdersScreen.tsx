@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Badge, Button, Card, EmptyState, Skeleton } from "@/components/ui";
 import { AccountMenu } from "@/components/customer/AccountMenu";
 import { useAuth } from "@/lib/auth";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, describeApiError } from "@/lib/api";
 import type { OutletResult } from "@/lib/customer";
 import { formatDateTime, formatINR, formatItemCount } from "@/lib/format";
 import { isFinalStatus, orderItemCount, statusLabel } from "@/lib/orders";
@@ -54,11 +54,7 @@ export function OrdersScreen() {
           setAuthExpired(true);
           return;
         }
-        setError(
-          requestError instanceof Error
-            ? requestError.message
-            : "We couldn’t load your orders.",
-        );
+        setError(describeApiError(requestError, "We couldn’t load your orders."));
       })
       .finally(() => {
         if (active) setLoadedKey(requestKey);

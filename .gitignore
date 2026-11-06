@@ -18,13 +18,6 @@ web/pnpm-debug.log*
 .playwright-mcp/
 
 *.log
-.venv*/
-web/*.png
-
-*.log
-.venv*/
-web/*.png
-
 *.png
 !web/public/**/*.png
 !docs/**/*.png

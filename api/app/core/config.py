@@ -1,11 +1,17 @@
 from functools import lru_cache
 
+from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field
 from sqlalchemy.engine import URL, make_url
+
+INSECURE_JWT_SECRETS = {"replace-this-development-secret-before-deployment"}
 
 
 class Settings(BaseSettings):
+    environment: str = Field(
+        default="development",
+        validation_alias=AliasChoices("environment", "env"),
+    )
     database_url: str | None = None
     database_url_direct: str | None = None
     cors_origins: list[str] = ["http://localhost:3000"]
@@ -22,6 +28,14 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
+
+    @model_validator(mode="after")
+    def refuse_insecure_production_secret(self):
+        if self.environment.lower() in {"production", "prod"} and self.jwt_secret in INSECURE_JWT_SECRETS:
+            raise ValueError(
+                "JWT_SECRET is still the insecure development default. Refusing to start with ENV=production."
+            )
+        return self
 
 
 def to_asyncpg_url(value: str) -> URL:

@@ -17,6 +17,39 @@ export class ApiError extends Error {
   }
 }
 
+export const NETWORK_DOWN_STATUS = 0;
+
+export const NETWORK_DOWN_MESSAGE =
+  "We can't reach the server. Check your connection and try again.";
+
+const DEFAULT_ERROR_MESSAGES: Record<number, string> = {
+  400: "We couldn't process that request. Check the details and try again.",
+  401: "Your session has expired. Please sign in again.",
+  403: "You don't have permission to do that.",
+  404: "We couldn't find that.",
+  409: "That can't be done right now. Try again in a moment.",
+  422: "Please check the details you entered and try again.",
+  429: "That's a bit fast. Wait a moment and try again.",
+  500: "Something went wrong on our side. Please try again in a moment.",
+  502: "The server is briefly unavailable. Please try again in a moment.",
+  503: "The server is briefly unavailable. Please try again in a moment.",
+  504: "The server took too long to reply. Please try again.",
+};
+
+function defaultMessageFor(status: number): string {
+  if (status >= 500) return DEFAULT_ERROR_MESSAGES[500] as string;
+  return DEFAULT_ERROR_MESSAGES[status] ?? DEFAULT_ERROR_MESSAGES[500] as string;
+}
+
+export function describeApiError(
+  error: unknown,
+  fallback = "Something went wrong. Please try again.",
+): string {
+  if (error instanceof ApiError && error.message) return error.message;
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+}
+
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "");
 const TOKEN_KEY = "hyderabad-biryani-token";
 const USER_KEY = "hyderabad-biryani-user";
@@ -46,7 +79,7 @@ export function readSession(): { token: string | null; user: unknown | null } {
 }
 
 async function errorFromResponse(response: Response): Promise<ApiError> {
-  let message = `Request failed (${response.status}).`;
+  let message = "";
   let details: ApiErrorDetail[] = [];
 
   try {
@@ -72,9 +105,10 @@ async function errorFromResponse(response: Response): Promise<ApiError> {
       if (typeof detail === "string") message = detail;
     }
   } catch {
-    message = response.statusText || message;
+    // No readable body; fall back to the friendly status message below.
   }
 
+  if (!message) message = defaultMessageFor(response.status);
   return new ApiError(message, response.status, details);
 }
 
@@ -86,11 +120,19 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = typeof window === "undefined" ? null : window.localStorage.getItem(TOKEN_KEY);
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store",
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...init,
+      headers,
+      cache: "no-store",
+    });
+  } catch (fetchError) {
+    if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
+      throw fetchError;
+    }
+    throw new ApiError(NETWORK_DOWN_MESSAGE, NETWORK_DOWN_STATUS);
+  }
 
   if (!response.ok) {
     const error = await errorFromResponse(response);

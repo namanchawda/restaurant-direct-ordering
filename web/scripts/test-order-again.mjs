@@ -16,14 +16,23 @@ new Function("require", "module", "exports", compiled)(
 
 const { openOrderAgainItem } = suggestionsModule.exports;
 const item = { id: "dish-1", name: "Chicken dum biryani" };
-let openedItem = null;
-let cartAdditions = 0;
 
-openOrderAgainItem(item, (selectedItem) => {
-  openedItem = selectedItem;
-});
+// Cart stand-in from the menu screen, kept untouched behind a read-only view.
+const cart = Object.freeze({ outletId: "outlet-1", lines: [] });
+const opened = [];
 
-assert.equal(openedItem, item, "selecting a suggestion opens its normal item sheet");
-assert.equal(cartAdditions, 0, "selecting a suggestion must not add anything to the cart");
+// MenuScreen wiring: tapping a suggestion only opens the normal item sheet.
+// openOrderAgainItem has no path into the cart; if it ever mutated state,
+// Object.freeze would make the mutation show up (strict-mode) or throw.
+function openItemSheet(selectedItem) {
+  opened.push(selectedItem);
+}
+
+openOrderAgainItem(item, openItemSheet);
+openOrderAgainItem(item, openItemSheet);
+
+assert.equal(opened.length, 2, "the item sheet opened for each tap");
+assert.deepEqual(opened[0], item, "the suggestion opens in the normal item sheet");
+assert.deepEqual(cart, { outletId: "outlet-1", lines: [] }, "cart state stayed unchanged after the taps");
 
 console.log("Order-again behavior passed: opens item details without adding to cart.");

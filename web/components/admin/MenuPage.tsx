@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { api, Category, MenuItem, Outlet, jsonBody } from "@/lib/api";
+import { api, describeApiError, Category, MenuItem, Outlet, jsonBody } from "@/lib/api";
 import { Button, Dialog, EmptyState, Input, Price, Select, Skeleton, Switch, useToast, VegMark } from "@/components/ui";
 import { CategoryManager } from "./CategoryManager";
 
@@ -40,7 +40,7 @@ export function MenuPage() {
       setCategories(nextCategories);
       setOutlets(nextOutlets);
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : "Could not load menu data.");
+      setLoadError(describeApiError(error, "Could not load menu data."));
     } finally {
       setLoading(false);
     }
@@ -70,7 +70,7 @@ export function MenuPage() {
       toast(next ? `${item.name} is active.` : `${item.name} is inactive.`, "success");
     } catch (error) {
       setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, active: item.active } : entry));
-      toast(error instanceof Error ? error.message : "Could not update item status.", "error");
+      toast(describeApiError(error, "Could not update item status."), "error");
     }
   }
 
@@ -91,7 +91,7 @@ export function MenuPage() {
         ...current,
         [item.id]: { ...current[item.id], [outlet.id]: previous },
       }));
-      toast(error instanceof Error ? error.message : "Availability could not be updated.", "error");
+      toast(describeApiError(error, "Availability could not be updated."), "error");
     }
   }
 
@@ -109,7 +109,7 @@ export function MenuPage() {
       toast(`${deleteItem.name} deactivated. You can reactivate it at any time.`, "success");
       setDeleteItem(null);
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Could not deactivate this item.", "error");
+      toast(describeApiError(error, "Could not deactivate this item."), "error");
     } finally {
       setSaving(false);
     }
@@ -129,7 +129,7 @@ export function MenuPage() {
       }));
       setOutlets(entries.map(({ id, name, city }) => ({ id, name, city })));
     } catch (error) {
-      setAvailabilityError(error instanceof Error ? error.message : "Could not load outlet availability.");
+      setAvailabilityError(describeApiError(error, "Could not load outlet availability."));
     } finally {
       setAvailabilityLoading(false);
     }

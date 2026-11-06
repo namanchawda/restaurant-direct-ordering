@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Button, Input, Switch, VegMark } from "@/components/ui";
 import { useToast } from "@/components/ui";
-import { api } from "@/lib/api";
+import { api, describeApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 type KitchenItem = {
@@ -37,9 +37,7 @@ export function KitchenItems() {
       .catch((reason: unknown) => {
         if (!active) return;
         setError(
-          reason instanceof Error
-            ? reason.message
-            : "We couldn’t load the kitchen items.",
+          describeApiError(reason, "We couldn’t load the kitchen items."),
         );
       })
       .finally(() => {
@@ -89,9 +87,7 @@ export function KitchenItems() {
         ),
       );
       toast(
-        reason instanceof Error
-          ? reason.message
-          : "Could not update this item.",
+        describeApiError(reason, "Could not update this item."),
         "error",
       );
     } finally {
