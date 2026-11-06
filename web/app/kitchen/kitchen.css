@@ -342,6 +342,7 @@
 .kd-promise > div { display: flex; flex-direction: column; gap: 1px; }
 .kd-promise span { color: var(--muted); font-size: calc(11.5px * var(--kd-scale)); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
 .kd-promise strong { font-size: calc(16px * var(--kd-scale)); font-variant-numeric: tabular-nums; }
+.kd-promise .kd-estimate-breakdown { color: var(--muted); font-size: calc(11px * var(--kd-scale)); font-weight: 500; letter-spacing: normal; line-height: 1.35; text-transform: none; }
 
 .kd-escalation {
   display: grid;
@@ -489,6 +490,7 @@
 .kd-app[data-theme="contrast"] .kd-segmented button.is-selected { background: #454545; color: #ffffff; }
 .kd-app[data-theme="contrast"] .kd-items li,
 .kd-app[data-theme="contrast"] .kd-promise { border-color: #3a3a3a; }
+.kd-app[data-theme="contrast"] .kd-promise .kd-estimate-breakdown { color: #d3d3d3; }
 .kd-app[data-theme="contrast"] .kd-note { background: #2e2410; color: #ffe1a1; border-left-color: #ffd166; }
 .kd-app[data-theme="contrast"] .kd-note strong { color: #ffd166; }
 .kd-app[data-theme="contrast"] .kd-escalation { background: #3a1512; border-color: #7a2b25; }

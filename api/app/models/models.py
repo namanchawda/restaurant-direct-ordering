@@ -55,6 +55,7 @@ class Outlet(TimestampMixin, Base):
     fssai_number: Mapped[str] = mapped_column(String(14), unique=True, nullable=False)
     is_open: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("true"), nullable=False)
     min_prep_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    kitchen_capacity: Mapped[int] = mapped_column(Integer, nullable=False, default=20, server_default=text("20"))
 
     users: Mapped[list["User"]] = relationship(back_populates="outlet")
     orders: Mapped[list["Order"]] = relationship(back_populates="outlet")
@@ -69,6 +70,7 @@ class Category(TimestampMixin, Base):
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     name: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    prep_weight_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=10, server_default=text("10"))
     available_from: Mapped[time | None] = mapped_column(Time, nullable=True)
     available_to: Mapped[time | None] = mapped_column(Time, nullable=True)
 
@@ -265,6 +267,7 @@ class Order(TimestampMixin, Base):
     promised_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     ai_estimate_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     manager_override_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    estimate_breakdown: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     escalated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     escalation_acknowledged_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True

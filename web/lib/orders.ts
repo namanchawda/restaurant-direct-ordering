@@ -42,6 +42,9 @@ export type Order = {
   cancellation_reason: string | null;
   customer_first_name: string | null;
   manager_override_minutes: number | null;
+  ai_estimate_minutes: number | null;
+  estimate_breakdown_text: string | null;
+  kitchen_busy: boolean;
   escalated_at: string | null;
   escalation_acknowledged_at: string | null;
   is_escalated: boolean;

@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+import logging
 import re
 from uuid import UUID
 
@@ -37,9 +38,51 @@ from app.services.order_payload import (
     order_load_options,
     serialize_order,
 )
-from app.services.prep_time import calculate_promised_at
+from app.services.prep_time import calculate_promised_at, estimate_prep_minutes, fallback_prep_minutes
 
 router = APIRouter(tags=["orders"])
+logger = logging.getLogger(__name__)
+
+
+@router.get("/orders/suggestions")
+async def order_suggestions(
+    outlet_id: UUID,
+    user: User = Depends(require_role("customer")),
+    session: AsyncSession = Depends(get_db),
+) -> list[dict[str, object]]:
+    outlet = await session.get(Outlet, outlet_id)
+    if outlet is None:
+        raise HTTPException(status_code=404, detail="Outlet not found.")
+    rows = (
+        await session.execute(
+            select(MenuItem, func.count(OrderItem.id).label("frequency"), func.max(Order.placed_at).label("last_ordered"))
+            .options(selectinload(MenuItem.category), selectinload(MenuItem.city_prices))
+            .join(OrderItem, OrderItem.item_id == MenuItem.id)
+            .join(Order, Order.id == OrderItem.order_id)
+            .join(Category, Category.id == MenuItem.category_id)
+            .join(
+                OutletItemAvailability,
+                (OutletItemAvailability.item_id == MenuItem.id)
+                & (OutletItemAvailability.outlet_id == outlet_id)
+                & OutletItemAvailability.available.is_(True),
+            )
+            .where(Order.user_id == user.id, Order.payment_status == "paid", MenuItem.active.is_(True))
+            .group_by(MenuItem.id, Category.id)
+            .order_by(func.count(OrderItem.id).desc(), func.max(Order.placed_at).desc())
+            .limit(12)
+        )
+    ).all()
+    now = _now_utc()
+    suggestions: list[dict[str, object]] = []
+    for item, _, _ in rows:
+        in_window, _ = category_window_status(item.category, now)
+        if not in_window:
+            continue
+        price = next((row.price_inr for row in item.city_prices if row.city.casefold() == outlet.city.casefold()), item.base_price_inr)
+        suggestions.append({"item_id": str(item.id), "name": item.name, "photo_url": item.photo_url, "price_inr": price, "is_veg": item.is_veg})
+        if len(suggestions) == 3:
+            break
+    return suggestions
 kitchen_router = APIRouter(prefix="/kitchen", tags=["kitchen"])
 TRANSITIONS = {
     "placed": {"accepted", "cancelled"},
@@ -48,6 +91,26 @@ TRANSITIONS = {
     "ready_for_pickup": {"handed_to_rider"},
     "handed_to_rider": {"delivered"},
 }
+
+@kitchen_router.get("/stats")
+async def kitchen_stats(
+    outlet_id: UUID | None = None,
+    from_date: datetime | None = Query(None, alias="from"),
+    to_date: datetime | None = Query(None, alias="to"),
+    user: User = Depends(require_role("kitchen")), session: AsyncSession = Depends(get_db)
+) -> dict[str, object]:
+    if user.outlet_id is None:
+        raise HTTPException(status_code=403, detail="Kitchen users must be assigned to an outlet.")
+    if outlet_id is not None and outlet_id != user.outlet_id:
+        raise HTTPException(status_code=403, detail="Kitchen users can only view their own outlet.")
+    from app.api.admin import dashboard_data
+    return await dashboard_data(
+        user=user,
+        session=session,
+        outlet_id=user.outlet_id,
+        from_date=from_date,
+        to_date=to_date,
+    )
 
 
 def _now_utc() -> datetime:
@@ -97,6 +160,7 @@ async def create_order(
         raise HTTPException(status_code=422, detail="Delivery address is outside this outlet's delivery radius.")
 
     items: list[OrderItem] = []
+    item_weights: list[int] = []
     total = 0
     current_time = _now_utc()
     for line in payload.items:
@@ -117,6 +181,7 @@ async def create_order(
             row.outlet_id == outlet.id and row.available for row in item.outlet_availability
         )
         category = item.category
+        item_weights.extend([category.prep_weight_minutes] * line.quantity)
         in_window, _ = category_window_status(category, current_time)
         if not is_available or not in_window:
             raise HTTPException(status_code=409, detail=f"{item.name} is not available at this outlet right now.")
@@ -165,8 +230,42 @@ async def create_order(
             Order.payment_status == "paid",
         )
     )
+    active_items = await session.scalar(
+        select(func.coalesce(func.sum(OrderItem.quantity), 0)).join(Order).where(
+            Order.outlet_id == outlet.id, Order.status.in_(ACTIVE_STATUSES), Order.payment_status == "paid"
+        )
+    )
+    history_orders = (
+        await session.scalars(
+            select(Order)
+            .options(selectinload(Order.status_events))
+            .where(
+                Order.outlet_id == outlet.id,
+                Order.payment_status == "paid",
+                Order.status.in_(("ready_for_pickup", "handed_to_rider", "delivered")),
+            )
+            .order_by(Order.placed_at.desc())
+            .limit(50)
+        )
+    ).all()
+    historical_durations: list[int] = []
+    for history_order in history_orders:
+        start = next((event.at for event in history_order.status_events if event.status in {"accepted", "preparing"}), None)
+        ready = next((event.at for event in history_order.status_events if event.status == "ready_for_pickup"), None)
+        if start is not None and ready is not None and ready >= start:
+            historical_durations.append(max(0, round((ready - start).total_seconds() / 60)))
+    try:
+        estimate, breakdown = estimate_prep_minutes(
+            item_weights,
+            int(active_items or 0),
+            outlet.kitchen_capacity,
+            historical_durations,
+        )
+    except Exception:
+        logger.exception("Prep estimate failed for outlet %s; using safe fallback", outlet.id)
+        estimate, breakdown = fallback_prep_minutes(outlet.min_prep_minutes, int(active_count or 0))
     placed_at = _now_utc()
-    promised_at = calculate_promised_at(placed_at, outlet.min_prep_minutes, active_count or 0)
+    promised_at = calculate_promised_at(placed_at, outlet.min_prep_minutes, active_count or 0, ai_estimate_minutes=estimate)
     order: Order | None = None
     for attempt in range(10):
         order = Order(
@@ -183,6 +282,8 @@ async def create_order(
             notes=payload.notes,
             placed_at=placed_at,
             promised_at=promised_at,
+            ai_estimate_minutes=estimate,
+            estimate_breakdown=breakdown,
         )
         order.items.extend(
             OrderItem(

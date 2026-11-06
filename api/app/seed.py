@@ -23,13 +23,13 @@ from app.models import (
 )
 
 CATEGORIES = [
-    {"name": "Biryanis", "sort_order": 1},
-    {"name": "Haleem", "sort_order": 2, "available_from": time(16), "available_to": time(23)},
-    {"name": "Kebabs and starters", "sort_order": 3},
-    {"name": "Curries", "sort_order": 4},
-    {"name": "Breads and sides", "sort_order": 5},
-    {"name": "Desserts", "sort_order": 6},
-    {"name": "Drinks", "sort_order": 7},
+    {"name": "Biryanis", "sort_order": 1, "prep_weight_minutes": 20},
+    {"name": "Haleem", "sort_order": 2, "prep_weight_minutes": 20, "available_from": time(16), "available_to": time(23)},
+    {"name": "Kebabs and starters", "sort_order": 3, "prep_weight_minutes": 15},
+    {"name": "Curries", "sort_order": 4, "prep_weight_minutes": 15},
+    {"name": "Breads and sides", "sort_order": 5, "prep_weight_minutes": 8},
+    {"name": "Desserts", "sort_order": 6, "prep_weight_minutes": 5},
+    {"name": "Drinks", "sort_order": 7, "prep_weight_minutes": 3},
 ]
 
 OUTLETS = [
@@ -44,6 +44,7 @@ OUTLETS = [
         "fssai_number": "00000000000001",
         "is_open": True,
         "min_prep_minutes": 25,
+        "kitchen_capacity": 18,
     },
     {
         "name": "Gachibowli cloud kitchen",
@@ -56,6 +57,7 @@ OUTLETS = [
         "fssai_number": "00000000000002",
         "is_open": True,
         "min_prep_minutes": 20,
+        "kitchen_capacity": 30,
     },
     {
         "name": "Kukatpally",
@@ -68,6 +70,7 @@ OUTLETS = [
         "fssai_number": "00000000000003",
         "is_open": True,
         "min_prep_minutes": 30,
+        "kitchen_capacity": 18,
     },
 ]
 

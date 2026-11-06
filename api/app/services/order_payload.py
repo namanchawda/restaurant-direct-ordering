@@ -4,6 +4,8 @@ from math import ceil
 from sqlalchemy.orm import selectinload
 
 from app.models import Order
+from app.core.config import get_settings
+from app.services.prep_time import estimate_breakdown_text
 
 ACTIVE_STATUSES = (
     "placed",
@@ -69,6 +71,13 @@ def serialize_order(order: Order) -> dict[str, object]:
         "cancellation_reason": order.cancellation_reason,
         "customer_first_name": customer_first_name(order),
         "manager_override_minutes": order.manager_override_minutes,
+        "ai_estimate_minutes": order.ai_estimate_minutes,
+        "estimate_breakdown": order.estimate_breakdown,
+        "estimate_breakdown_text": estimate_breakdown_text(order.ai_estimate_minutes or 0, order.estimate_breakdown),
+        "kitchen_busy": bool(
+            order.estimate_breakdown
+            and float(order.estimate_breakdown.get("queue", 0)) > get_settings().kitchen_busy_queue_minutes
+        ),
         "escalated_at": order.escalated_at,
         "escalation_acknowledged_at": order.escalation_acknowledged_at,
         "is_escalated": is_escalated,

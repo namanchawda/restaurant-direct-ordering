@@ -105,6 +105,9 @@ const KitchenOrderCard = memo(function KitchenOrderCard({
         <div>
           <span>Promise</span>
           <strong>{formatTime(order.promised_at)}</strong>
+          {order.estimate_breakdown_text && (
+            <small className="kd-estimate-breakdown">{order.estimate_breakdown_text}</small>
+          )}
         </div>
         {order.manager_override_minutes !== null && (
           <span className="kd-pill kd-pill-neutral">Manager set</span>

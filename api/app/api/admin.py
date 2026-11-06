@@ -1,13 +1,28 @@
+from datetime import date, datetime, time, timedelta
+from typing import Any
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import case, extract, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_db, require_role
-from app.models import Addon, Category, CityPrice, ItemAddon, ItemVariant, MenuItem, Outlet, OutletItemAvailability, User
+from app.models import (
+    Addon,
+    Category,
+    CityPrice,
+    ItemAddon,
+    ItemVariant,
+    MenuItem,
+    Order,
+    OrderStatusEvent,
+    Outlet,
+    OutletItemAvailability,
+    User,
+)
 from app.schemas import (
     AddonCreate,
     AddonUpdate,
@@ -21,6 +36,320 @@ from app.schemas import (
 )
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+_IST = ZoneInfo("Asia/Kolkata")
+
+
+def _dashboard_range(
+    from_date: datetime | None, to_date: datetime | None
+) -> tuple[datetime, datetime]:
+    today = datetime.now(_IST).date()
+    start_day = from_date.astimezone(_IST).date() if from_date and from_date.tzinfo else (
+        from_date.date() if from_date else None
+    )
+    end_day = to_date.astimezone(_IST).date() if to_date and to_date.tzinfo else (
+        to_date.date() if to_date else None
+    )
+    end_day = end_day or today
+    start_day = start_day or end_day - timedelta(days=6)
+
+    if start_day > end_day:
+        raise HTTPException(status_code=422, detail="'from' must be on or before 'to'.")
+    if (end_day - start_day).days + 1 > 90:
+        raise HTTPException(status_code=422, detail="The requested range cannot exceed 90 days.")
+
+    start = datetime.combine(start_day, time.min, tzinfo=_IST)
+    end_exclusive = datetime.combine(end_day + timedelta(days=1), time.min, tzinfo=_IST)
+    return start, end_exclusive
+
+
+def _empty_dashboard_metrics() -> dict[str, Any]:
+    return {
+        "orders_count": 0,
+        "revenue_inr": 0,
+        "avg_order_value_inr": None,
+        "avg_promised_minutes": None,
+        "median_promised_minutes": None,
+        "avg_actual_minutes": None,
+        "median_actual_minutes": None,
+        "on_time_rate": None,
+        "late_count": 0,
+        "escalated_count": 0,
+        "cancellations_count": 0,
+        "cancellations": [],
+        "repeat_customer_pct": None,
+        "orders_by_hour": [{"hour": hour, "orders_count": 0} for hour in range(24)],
+    }
+
+
+def _rounded(value: Any) -> float | None:
+    return round(float(value), 2) if value is not None else None
+
+
+async def dashboard_data(
+    user: User, session: AsyncSession, outlet_id: UUID | None = None,
+    from_date: datetime | None = None, to_date: datetime | None = None,
+) -> dict[str, object]:
+    start, end_exclusive = _dashboard_range(from_date, to_date)
+    conditions = [
+        Order.payment_status == "paid",
+        Order.placed_at >= start,
+        Order.placed_at < end_exclusive,
+    ]
+    if outlet_id is not None:
+        conditions.append(Order.outlet_id == outlet_id)
+
+    ready_events = (
+        select(
+            OrderStatusEvent.order_id.label("order_id"),
+            func.min(OrderStatusEvent.at).label("ready_at"),
+        )
+        .where(OrderStatusEvent.status == "ready_for_pickup")
+        .group_by(OrderStatusEvent.order_id)
+        .subquery()
+    )
+    promised_minutes = extract("epoch", Order.promised_at - Order.placed_at) / 60.0
+    actual_minutes = extract("epoch", ready_events.c.ready_at - Order.placed_at) / 60.0
+
+    async def metric_rows(group_by_outlet: bool) -> list[Any]:
+        columns = []
+        if group_by_outlet:
+            columns.extend(
+                [Outlet.id.label("outlet_id"), Outlet.name.label("outlet_name")]
+            )
+        columns.extend(
+            [
+                func.count(Order.id).label("orders_count"),
+                func.coalesce(func.sum(Order.total_inr), 0).label("revenue_inr"),
+                func.avg(Order.total_inr).label("avg_order_value_inr"),
+                func.avg(promised_minutes).label("avg_promised_minutes"),
+                func.percentile_cont(0.5).within_group(promised_minutes).label(
+                    "median_promised_minutes"
+                ),
+                func.avg(actual_minutes)
+                .filter(ready_events.c.ready_at.is_not(None))
+                .label("avg_actual_minutes"),
+                func.percentile_cont(0.5)
+                .within_group(actual_minutes)
+                .filter(ready_events.c.ready_at.is_not(None))
+                .label("median_actual_minutes"),
+                (
+                    100.0
+                    * func.count()
+                    .filter(
+                        ready_events.c.ready_at.is_not(None),
+                        ready_events.c.ready_at <= Order.promised_at,
+                    )
+                    / func.nullif(
+                        func.count().filter(ready_events.c.ready_at.is_not(None)), 0
+                    )
+                ).label("on_time_rate"),
+                func.count()
+                .filter(
+                    ready_events.c.ready_at.is_not(None),
+                    ready_events.c.ready_at > Order.promised_at,
+                )
+                .label("late_count"),
+                func.count()
+                .filter(Order.escalated_at.is_not(None))
+                .label("escalated_count"),
+                func.count()
+                .filter(Order.status == "cancelled")
+                .label("cancellations_count"),
+            ]
+        )
+        statement = (
+            select(*columns)
+            .select_from(Order)
+            .join(Outlet, Outlet.id == Order.outlet_id)
+            .outerjoin(ready_events, ready_events.c.order_id == Order.id)
+            .where(*conditions)
+        )
+        if group_by_outlet:
+            statement = statement.group_by(Outlet.id, Outlet.name).order_by(Outlet.name)
+        return list((await session.execute(statement)).all())
+
+    outlet_rows = await metric_rows(group_by_outlet=True)
+    total_row = (await metric_rows(group_by_outlet=False))[0]
+
+    outlets = (
+        await session.execute(
+            select(Outlet.id, Outlet.name)
+            .where(*([Outlet.id == outlet_id] if outlet_id is not None else []))
+            .order_by(Outlet.name)
+        )
+    ).all()
+    per_outlet = {
+        outlet.id: {
+            "outlet_id": str(outlet.id),
+            "outlet": outlet.name,
+            **_empty_dashboard_metrics(),
+        }
+        for outlet in outlets
+    }
+    overall = _empty_dashboard_metrics()
+
+    def apply_metric_row(metrics: dict[str, Any], row: Any) -> None:
+        for key in (
+            "orders_count",
+            "revenue_inr",
+            "late_count",
+            "escalated_count",
+            "cancellations_count",
+        ):
+            metrics[key] = int(row._mapping[key] or 0)
+        for key in (
+            "avg_order_value_inr",
+            "avg_promised_minutes",
+            "median_promised_minutes",
+            "avg_actual_minutes",
+            "median_actual_minutes",
+            "on_time_rate",
+        ):
+            metrics[key] = _rounded(row._mapping[key])
+
+    for row in outlet_rows:
+        apply_metric_row(per_outlet[row.outlet_id], row)
+    apply_metric_row(overall, total_row)
+
+    repeat_orders = (
+        select(
+            Order.outlet_id.label("outlet_id"),
+            Order.user_id.label("user_id"),
+            func.count(Order.id).label("orders_count"),
+        )
+        .where(*conditions)
+        .group_by(Order.outlet_id, Order.user_id)
+        .subquery()
+    )
+    repeat_rows = (
+        await session.execute(
+            select(
+                repeat_orders.c.outlet_id,
+                func.count()
+                .filter(repeat_orders.c.orders_count >= 2)
+                .label("repeat_customers"),
+                func.count().label("customers_count"),
+            ).group_by(repeat_orders.c.outlet_id)
+        )
+    ).all()
+    total_repeat_orders = (
+        select(
+            Order.user_id.label("user_id"),
+            func.count(Order.id).label("orders_count"),
+        )
+        .where(*conditions)
+        .group_by(Order.user_id)
+        .subquery()
+    )
+    total_repeats = (
+        await session.execute(
+            select(
+                func.count()
+                .filter(total_repeat_orders.c.orders_count >= 2)
+                .label("repeat_customers"),
+                func.count().label("customers_count"),
+            ).select_from(total_repeat_orders)
+        )
+    ).one()
+
+    def repeat_percentage(repeats: int, customers: int) -> float | None:
+        return round(repeats * 100.0 / customers, 2) if customers else None
+
+    for row in repeat_rows:
+        per_outlet[row.outlet_id]["repeat_customer_pct"] = repeat_percentage(
+            int(row.repeat_customers), int(row.customers_count)
+        )
+    overall["repeat_customer_pct"] = repeat_percentage(
+        int(total_repeats.repeat_customers), int(total_repeats.customers_count)
+    )
+
+    async def cancellation_rows(group_by_outlet: bool) -> list[Any]:
+        columns = []
+        if group_by_outlet:
+            columns.append(Outlet.id.label("outlet_id"))
+        columns.extend(
+            [
+                Order.cancellation_reason.label("reason"),
+                func.count(Order.id).label("count"),
+            ]
+        )
+        statement = (
+            select(*columns)
+            .select_from(Order)
+            .join(Outlet, Outlet.id == Order.outlet_id)
+            .where(*conditions, Order.status == "cancelled")
+            .group_by(
+                *(
+                    [Outlet.id, Order.cancellation_reason]
+                    if group_by_outlet
+                    else [Order.cancellation_reason]
+                )
+            )
+            .order_by(Order.cancellation_reason)
+        )
+        return list((await session.execute(statement)).all())
+
+    for row in await cancellation_rows(group_by_outlet=True):
+        per_outlet[row.outlet_id]["cancellations"].append(
+            {"reason": row.reason, "count": int(row.count)}
+        )
+    overall["cancellations"] = [
+        {"reason": row.reason, "count": int(row.count)}
+        for row in await cancellation_rows(group_by_outlet=False)
+    ]
+
+    hour = extract("hour", func.timezone("Asia/Kolkata", Order.placed_at))
+
+    async def hourly_rows(group_by_outlet: bool) -> list[Any]:
+        columns = []
+        if group_by_outlet:
+            columns.append(Outlet.id.label("outlet_id"))
+        columns.extend([hour.label("hour"), func.count(Order.id).label("orders_count")])
+        statement = (
+            select(*columns)
+            .select_from(Order)
+            .join(Outlet, Outlet.id == Order.outlet_id)
+            .where(*conditions)
+            .group_by(*(([Outlet.id, hour]) if group_by_outlet else [hour]))
+            .order_by(hour)
+        )
+        return list((await session.execute(statement)).all())
+
+    for row in await hourly_rows(group_by_outlet=True):
+        per_outlet[row.outlet_id]["orders_by_hour"][int(row.hour)]["orders_count"] = int(
+            row.orders_count
+        )
+    for row in await hourly_rows(group_by_outlet=False):
+        overall["orders_by_hour"][int(row.hour)]["orders_count"] = int(row.orders_count)
+
+    for metrics in [*per_outlet.values(), overall]:
+        metrics["orders"] = metrics["orders_count"]
+        metrics["average_order_value_inr"] = metrics["avg_order_value_inr"]
+
+    return {
+        "from": start.isoformat(),
+        "to": (end_exclusive - timedelta(microseconds=1)).isoformat(),
+        "headline": {
+            "orders": overall["orders_count"],
+            "revenue_inr": overall["revenue_inr"],
+            "average_order_value_inr": overall["avg_order_value_inr"] or 0,
+        },
+        "total": overall,
+        "outlets": list(per_outlet.values()),
+        "orders_by_hour": overall["orders_by_hour"],
+        "cancellations_by_reason": overall["cancellations"],
+    }
+
+@router.get("/dashboard")
+async def dashboard(
+    from_date: datetime | None = Query(None, alias="from"),
+    to_date: datetime | None = Query(None, alias="to"),
+    outlet_id: UUID | None = None,
+    user: User = Depends(require_role("admin")), session: AsyncSession = Depends(get_db)
+) -> dict[str, object]:
+    return await dashboard_data(user, session, outlet_id, from_date, to_date)
 
 
 async def _commit(session: AsyncSession) -> None:

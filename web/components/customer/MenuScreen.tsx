@@ -9,6 +9,7 @@ import { CartSummary } from "@/components/customer/CartSummary";
 import { useCart } from "@/components/customer/CartProvider";
 import { FoodImage } from "@/components/customer/FoodImage";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import {
   cartItemCount,
   cartLineIdentity,
@@ -18,6 +19,11 @@ import {
 import type { CartLine } from "@/lib/cart";
 import { formatINR, servedWindow } from "@/lib/customer";
 import type { MenuItem, OutletMenu } from "@/lib/customer";
+import { openOrderAgainItem } from "@/lib/order-suggestions";
+
+type OrderSuggestion = {
+  item_id: string;
+};
 
 const ALLERGEN_LABELS: Record<string, string> = {
   milk: "Milk",
@@ -333,6 +339,7 @@ function MenuSkeleton() {
 export function MenuScreen({ outletId }: { outletId: string }) {
   const toast = useToast();
   const { cart, hydrated, revalidate } = useCart();
+  const { user, ready: authReady } = useAuth();
   const [menu, setMenu] = useState<OutletMenu | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -341,6 +348,12 @@ export function MenuScreen({ outletId }: { outletId: string }) {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
   const [activeItem, setActiveItem] = useState<MenuItem | null>(null);
+  const [suggestionResult, setSuggestionResult] = useState<{
+    key: string;
+    suggestions: OrderSuggestion[];
+  } | null>(null);
+  const [suggestionFailure, setSuggestionFailure] = useState<{ key: string; message: string } | null>(null);
+  const [suggestionRequestVersion, setSuggestionRequestVersion] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -366,6 +379,37 @@ export function MenuScreen({ outletId }: { outletId: string }) {
       active = false;
     };
   }, [outletId, requestVersion]);
+
+  const customerUserId = user?.role === "customer" ? user.id : null;
+  const suggestionKey = customerUserId
+    ? `${customerUserId}:${outletId}:${suggestionRequestVersion}`
+    : "";
+
+  useEffect(() => {
+    if (!authReady || !customerUserId) return;
+
+    let active = true;
+    const query = new URLSearchParams({ outlet_id: outletId });
+    void api<OrderSuggestion[]>(`/orders/suggestions?${query}`)
+      .then((result) => {
+        if (active) {
+          setSuggestionResult({ key: suggestionKey, suggestions: result });
+          setSuggestionFailure(null);
+        }
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setSuggestionFailure({
+            key: suggestionKey,
+            message: error instanceof Error ? error.message : "Saved dishes couldn’t load.",
+          });
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [authReady, customerUserId, outletId, suggestionKey]);
 
   useEffect(() => {
     if (menu) revalidate(menu);
@@ -423,6 +467,16 @@ export function MenuScreen({ outletId }: { outletId: string }) {
     0,
   ) ?? 0;
   const total = cartSubtotal(cart.lines);
+  const menuItems = menu?.categories.flatMap((category) => category.items) ?? [];
+  const suggestions = suggestionResult?.key === suggestionKey
+    ? suggestionResult.suggestions
+    : [];
+  const suggestionError = suggestionFailure?.key === suggestionKey
+    ? suggestionFailure.message
+    : "";
+  const orderAgainItems = suggestions
+    .map((suggestion) => menuItems.find((item) => item.id === suggestion.item_id))
+    .filter((item): item is MenuItem => Boolean(item?.available));
 
   return (
     <main className="customer-page menu-page">
@@ -487,6 +541,50 @@ export function MenuScreen({ outletId }: { outletId: string }) {
                 </button>
               ))}
             </nav>
+          )}
+          {orderAgainItems.length > 0 && (
+            <section className="order-again" aria-labelledby="order-again-heading">
+              <div className="order-again-heading">
+                <div>
+                  <p className="customer-eyebrow">From your order history</p>
+                  <h2 id="order-again-heading">Order again</h2>
+                </div>
+              </div>
+              <div className="order-again-list">
+                {orderAgainItems.map((item) => (
+                  <button
+                    className="order-again-item"
+                    key={item.id}
+                    type="button"
+                    onClick={() => openOrderAgainItem(item, setActiveItem)}
+                    aria-label={`View ${item.name} details`}
+                  >
+                    <FoodImage
+                      src={item.photo_url}
+                      name={item.name}
+                      isVeg={item.is_veg}
+                      className="order-again-photo"
+                    />
+                    <span className="order-again-copy">
+                      <strong>{item.name}</strong>
+                      <span>{formatINR(item.price)}</span>
+                    </span>
+                    <span className="order-again-action">View</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+          {suggestionError && (
+            <div className="order-again-error" role="alert">
+              <span>{suggestionError}</span>
+              <button
+                type="button"
+                onClick={() => setSuggestionRequestVersion((version) => version + 1)}
+              >
+                Try again
+              </button>
+            </div>
           )}
         </>
       )}

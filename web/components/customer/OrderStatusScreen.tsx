@@ -192,6 +192,9 @@ export function OrderStatusScreen({ publicId }: { publicId: string }) {
                         ? `About ${remaining} ${remaining === 1 ? "minute" : "minutes"} to go.`
                         : "Any moment now."}
                 </span>
+                {order.kitchen_busy && (
+                  <span className="order-kitchen-busy">The kitchen is busy right now.</span>
+                )}
               </div>
               <span className="order-live-note">
                 <span className="order-live-dot" aria-hidden="true" />

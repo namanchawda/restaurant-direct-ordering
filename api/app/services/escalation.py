@@ -11,6 +11,7 @@ from app.db.session import get_session_factory
 from app.models import Order
 from app.services.events import publish_order_event
 from app.services.order_payload import LATE_STATUSES, order_load_options
+from app.services.prep_time import calculate_promised_at
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,12 @@ async def run_escalation_once(
         )
         order.escalated_at = current_time
         order.escalation_acknowledged_at = None
-        order.promised_at = current_time + timedelta(minutes=extension)
+        order.promised_at = calculate_promised_at(
+            current_time,
+            min_prep_minutes=0,
+            active_order_count=0,
+            manager_override_minutes=extension,
+        )
         escalated.append(order)
         logger.warning(
             "Escalating order %s at outlet %s: %s minutes past promise. "

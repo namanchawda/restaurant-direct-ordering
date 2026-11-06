@@ -311,6 +311,7 @@ export function KitchenChrome({ children }: { children: React.ReactNode }) {
 
   const boardActive = pathname === "/kitchen";
   const itemsActive = pathname.startsWith("/kitchen/items");
+  const statsActive = pathname.startsWith("/kitchen/stats");
 
   return (
     <SettingsContext.Provider value={settingsValue}>
@@ -360,6 +361,7 @@ export function KitchenChrome({ children }: { children: React.ReactNode }) {
                 >
                   Items
                 </Link>
+                <Link href="/kitchen/stats" className={statsActive ? "is-active" : ""} aria-current={statsActive ? "page" : undefined}>Stats</Link>
               </nav>
               <details className="kd-settings">
                 <summary>Settings</summary>

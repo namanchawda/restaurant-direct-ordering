@@ -32,7 +32,7 @@ import {
   totalsMatch,
 } from "@/lib/checkout";
 import { formatINR, LOCATION_STORAGE_KEY } from "@/lib/customer";
-import { formatItemCount } from "@/lib/format";
+import { formatItemCount, formatTime } from "@/lib/format";
 import type { DeliveryArea, OutletResult } from "@/lib/customer";
 import { formatCardNumber, formatExpiry, validatePayment } from "@/lib/payment";
 import type { PaymentMethod } from "@/lib/payment";
@@ -930,6 +930,11 @@ export function CheckoutScreen() {
               <span>{formatItemCount(summaryCount)}</span>
             </div>
             {outlet && <p className="checkout-summary-outlet">{outlet.name}</p>}
+            {order && (
+              <p className="checkout-summary-arrival" role="status">
+                Arriving by {formatTime(order.promised_at)}
+              </p>
+            )}
             <ul className="checkout-summary-lines">
               {order
                 ? order.items.map((item, index) => (
