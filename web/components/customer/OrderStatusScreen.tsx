@@ -124,7 +124,7 @@ export function OrderStatusScreen({ publicId }: { publicId: string }) {
         </div>
       )}
 
-      <div className="order-heading">
+      <div className="order-heading" aria-live="polite">
         <div>
           <p className="customer-eyebrow">Order {order.public_id}</p>
           <h1>{statusLabel(order.status)}</h1>
@@ -154,7 +154,7 @@ export function OrderStatusScreen({ publicId }: { publicId: string }) {
             </div>
           )}
 
-          {order.is_late && (
+          {!order.escalated_at && order.is_late && (
             <div className="order-late-note" role="status">
               <strong>
                 The kitchen is running about {order.minutes_late}{" "}

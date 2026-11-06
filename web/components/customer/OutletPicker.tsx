@@ -270,7 +270,7 @@ export function OutletPicker() {
                         )}
                       </div>
                       <span className={`outlet-status ${outlet.is_open ? "is-open" : "is-closed"}`}>
-                        <span aria-hidden="true">{outlet.is_open ? "●" : "○"}</span>
+                        <span aria-hidden="true" />
                         {outlet.is_open ? "Open" : "Closed"}
                       </span>
                     </div>

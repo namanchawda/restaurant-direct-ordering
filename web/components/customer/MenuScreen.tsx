@@ -488,7 +488,7 @@ export function MenuScreen({ outletId }: { outletId: string }) {
               </div>
               <div className="menu-header-actions">
                 <span className={`outlet-status ${menu.outlet.is_open ? "is-open" : "is-closed"}`}>
-                  <span aria-hidden="true">{menu.outlet.is_open ? "●" : "○"}</span>
+                  <span aria-hidden="true" />
                   {menu.outlet.is_open ? "Open now" : "Closed"}
                 </span>
                 <AccountMenu />
