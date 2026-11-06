@@ -71,7 +71,10 @@ const KitchenOrderCard = memo(function KitchenOrderCard({
     >
       <div className="kd-card-top">
         <span className="kd-order-id">#{shortOrderId(order.public_id)}</span>
-        <span className={`kd-pill kd-pill-${urgency}`}>{remainingLabel(order, now)}</span>
+      <span className={`kd-pill kd-pill-${urgency}`}>
+        {(urgency === "late" || urgency === "escalated") && <span aria-hidden="true">⚠ </span>}
+        {remainingLabel(order, now)}
+      </span>
       </div>
 
       <div className="kd-customer">
@@ -116,7 +119,7 @@ const KitchenOrderCard = memo(function KitchenOrderCard({
 
       {isEscalated(order) && (
         <div className="kd-escalation">
-          <strong>Manager alert{lateBy > 0 ? ` · ${lateBy} min late` : ""}</strong>
+          <strong><span aria-hidden="true">⚠ </span>Manager alert{lateBy > 0 ? ` · ${lateBy} min late` : ""}</strong>
           <span>The promised time has been extended and the customer notified.</span>
         </div>
       )}

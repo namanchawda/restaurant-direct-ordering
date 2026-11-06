@@ -567,6 +567,7 @@ button { color: inherit; }
   background: #fff;
   color: #241d1b;
 }
+.customer-page .button { min-height: 44px; }
 .customer-topbar, .simple-page-header {
   display: flex;
   min-height: 70px;
@@ -749,7 +750,7 @@ button { color: inherit; }
 .cart-line-selection { margin: 5px 0 0; color: #5e5751; font-size: 14px; line-height: 1.4; }
 .cart-line-controls { display: flex; align-items: center; gap: 13px; margin-top: 10px; }
 .cart-line-controls .quantity-stepper { min-height: 40px; }
-.cart-line-controls .quantity-stepper button { width: 36px; height: 36px; }
+.cart-line-controls .quantity-stepper button { width: 44px; height: 44px; }
 .remove-line { min-height: 44px; border: 0; background: transparent; color: #842f2a; cursor: pointer; font-size: 14px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 .cart-line-stale { border-color: #bd746d; background: #fffafa; }
 .cart-stale-reason { margin: 8px 0 0; color: #842f2a; font-size: 14px; font-weight: 600; }
@@ -960,7 +961,7 @@ button { color: inherit; }
 .account-menu-panel a,
 .account-menu-panel button {
   display: flex;
-  min-height: 42px;
+  min-height: 44px;
   align-items: center;
   border: 0;
   border-radius: 7px;
@@ -1167,7 +1168,7 @@ button { color: inherit; }
 .order-items-card, .order-history-card, .order-info-card { padding: 20px; }
 .order-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .order-card-heading h2, .order-history-card h2, .order-info-card h2 { margin: 0; font-size: 19px; letter-spacing: -.02em; }
-.order-card-heading > span { color: #625a55; font-size: 12px; }
+.order-card-heading > span { color: #625a55; font-size: 14px; }
 .order-items { display: grid; margin: 15px 0 4px; padding: 0; list-style: none; }
 .order-item { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; border-bottom: 1px solid #eeece9; padding: 11px 0; font-size: 14px; line-height: 1.4; }
 .order-item:first-child { padding-top: 0; }
@@ -1195,7 +1196,7 @@ button { color: inherit; }
 .privacy-page { padding-bottom: 60px; }
 .privacy-content { width: min(100% - 40px, 760px); margin: 46px auto 0; }
 .privacy-content h1 { margin: 6px 0 0; font-size: 42px; letter-spacing: -.045em; line-height: 1.08; }
-.privacy-updated { margin: 10px 0 0; color: #625a55; font-size: 12px; }
+.privacy-updated { margin: 10px 0 0; color: #625a55; font-size: 14px; }
 .privacy-lede { margin: 22px 0 0; color: #39322e; font-size: 18px; line-height: 1.6; }
 .privacy-content section { margin-top: 30px; }
 .privacy-content h2 { margin: 0 0 9px; font-size: 22px; letter-spacing: -.025em; line-height: 1.25; }
@@ -1397,7 +1398,7 @@ button { color: inherit; }
 }
 
 .order-again-error button {
-  min-height: 36px;
+  min-height: 44px;
   border: 1px solid currentColor;
   border-radius: 6px;
   background: transparent;
