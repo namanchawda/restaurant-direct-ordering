@@ -56,7 +56,7 @@ export function OrderStatusScreen({ publicId }: { publicId: string }) {
     <header className="simple-page-header">
       <Link href="/orders" className="back-link"><span aria-hidden="true">←</span> Orders</Link>
       <div className="header-end">
-        <Link className="brand-lockup" href="/" aria-label="Hyderabad Biryani home">
+        <Link className="brand-lockup" href="/">
           <span className="brand-mark" aria-hidden="true">H</span>
           <span>Hyderabad Biryani</span>
         </Link>

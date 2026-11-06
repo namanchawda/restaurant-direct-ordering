@@ -12,7 +12,7 @@ export default function PrivacyPage() {
       <header className="simple-page-header">
         <Link href="/" className="back-link"><span aria-hidden="true">←</span> Home</Link>
         <div className="header-end">
-          <Link className="brand-lockup" href="/" aria-label="Hyderabad Biryani home">
+          <Link className="brand-lockup" href="/">
             <span className="brand-mark" aria-hidden="true">H</span>
             <span>Hyderabad Biryani</span>
           </Link>

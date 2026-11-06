@@ -227,7 +227,7 @@ export function OperationsDashboard({ scope }: { scope: "admin" | "kitchen" }) {
   ];
 
   return (
-    <main className={styles.dashboard}>
+    <section className={styles.dashboard}>
       <header className={styles.pageHeading}>
         <div>
           <p>Operations</p>
@@ -361,6 +361,6 @@ export function OperationsDashboard({ scope }: { scope: "admin" | "kitchen" }) {
           </div>
         </>
       ) : null}
-    </main>
+    </section>
   );
 }

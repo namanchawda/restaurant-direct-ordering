@@ -169,7 +169,7 @@ export function OutletPicker() {
   return (
     <main className="customer-page picker-page">
       <header className="customer-topbar">
-        <Link className="brand-lockup" href="/" aria-label="Hyderabad Biryani home">
+        <Link className="brand-lockup" href="/">
           <span className="brand-mark" aria-hidden="true">H</span>
           <span>Hyderabad Biryani</span>
         </Link>

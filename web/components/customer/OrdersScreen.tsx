@@ -68,7 +68,7 @@ export function OrdersScreen() {
     <header className="simple-page-header">
       <Link href="/" className="back-link"><span aria-hidden="true">←</span> Home</Link>
       <div className="header-end">
-        <Link className="brand-lockup" href="/" aria-label="Hyderabad Biryani home">
+        <Link className="brand-lockup" href="/">
           <span className="brand-mark" aria-hidden="true">H</span>
           <span>Hyderabad Biryani</span>
         </Link>
@@ -90,7 +90,7 @@ export function OrdersScreen() {
       </div>
 
       {loading ? (
-        <div className="orders-list" aria-label="Loading your orders">
+        <div className="orders-list" role="status" aria-label="Loading your orders">
           {[0, 1, 2].map((key) => (
             <Card className="order-list-skeleton" key={key}>
               <Skeleton className="skeleton-line skeleton-title" />

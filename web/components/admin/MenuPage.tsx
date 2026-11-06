@@ -179,7 +179,7 @@ export function MenuPage() {
       </section>
 
       {loading ? (
-        <div className="loading-list" aria-label="Loading menu">
+        <div className="loading-list" role="status" aria-label="Loading menu">
           {Array.from({ length: 5 }, (_, index) => <Skeleton className="menu-skeleton" key={index} />)}
         </div>
       ) : loadError ? (

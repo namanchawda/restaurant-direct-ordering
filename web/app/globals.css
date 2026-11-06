@@ -1271,7 +1271,6 @@ button { color: inherit; }
 }
 
 @media (max-width: 420px) {
-  .simple-page-header .brand-lockup > span:last-child { display: none; }
   .order-list-foot { align-items: flex-start; flex-direction: column; }
   .order-list-foot .button { width: 100%; }
 }

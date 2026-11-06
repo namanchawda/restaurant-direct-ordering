@@ -321,7 +321,7 @@ function ItemSheet({
 
 function MenuSkeleton() {
   return (
-    <div className="menu-skeleton" aria-label="Loading menu">
+        <div className="menu-skeleton" role="status" aria-label="Loading menu">
       {[0, 1, 2, 3].map((key) => (
         <Card className="menu-skeleton-card" key={key}>
           <Skeleton className="menu-skeleton-photo" />

@@ -447,7 +447,7 @@ export function CheckoutScreen() {
         <header className="simple-page-header">
           <Link href="/cart" className="back-link"><span aria-hidden="true">←</span> Cart</Link>
           <div className="header-end">
-            <Link className="brand-lockup" href="/" aria-label="Hyderabad Biryani home">
+            <Link className="brand-lockup" href="/">
               <span className="brand-mark" aria-hidden="true">H</span>
               <span>Hyderabad Biryani</span>
             </Link>
@@ -639,7 +639,7 @@ export function CheckoutScreen() {
       <header className="simple-page-header">
         <Link href="/cart" className="back-link"><span aria-hidden="true">←</span> Cart</Link>
         <div className="header-end">
-          <Link className="brand-lockup" href="/" aria-label="Hyderabad Biryani home">
+          <Link className="brand-lockup" href="/">
             <span className="brand-mark" aria-hidden="true">H</span>
             <span>Hyderabad Biryani</span>
           </Link>

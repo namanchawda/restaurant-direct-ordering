@@ -104,7 +104,7 @@ export function CartScreen() {
           <span aria-hidden="true">←</span> Menu
         </Link>
         <div className="header-end">
-          <Link className="brand-lockup" href="/" aria-label="Hyderabad Biryani home">
+          <Link className="brand-lockup" href="/">
             <span className="brand-mark" aria-hidden="true">H</span>
             <span>Hyderabad Biryani</span>
           </Link>

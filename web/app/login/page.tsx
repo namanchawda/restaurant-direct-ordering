@@ -60,7 +60,7 @@ function LoginForm() {
   return (
     <main className="login-shell">
       <section className="login-card">
-        <Link className="brand-lockup" href="/" aria-label="Hyderabad Biryani home">
+        <Link className="brand-lockup" href="/">
           <span className="brand-mark" aria-hidden="true">H</span>
           <span>Hyderabad Biryani</span>
         </Link>
