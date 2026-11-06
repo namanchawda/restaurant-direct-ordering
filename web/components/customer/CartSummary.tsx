@@ -17,7 +17,14 @@ export function CartSummary() {
           <p className="customer-eyebrow">Your order</p>
           <h2>Cart</h2>
         </div>
-        <span className="cart-count-badge">{cartItemCount(cart.lines)}</span>
+        <span
+          className="cart-count-badge"
+          aria-live="polite"
+          aria-atomic="true"
+          aria-label={`Cart: ${cartItemCount(cart.lines)} items`}
+        >
+          {cartItemCount(cart.lines)}
+        </span>
       </div>
       {!hydrated ? (
         <p className="cart-summary-muted">Loading your cart…</p>

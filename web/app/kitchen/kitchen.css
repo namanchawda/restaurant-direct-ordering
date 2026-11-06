@@ -77,7 +77,7 @@
 }
 .kd-status {
   display: inline-flex;
-  min-height: 38px;
+  min-height: calc(var(--kd-target) * var(--kd-scale));
   align-items: center;
   gap: 8px;
   border: 1px solid var(--line);
@@ -201,7 +201,7 @@
 .kd-banner span { color: var(--muted); font-size: calc(13px * var(--kd-scale)); }
 .kd-banner .button { flex: none; }
 .kd-app .button { min-height: calc(var(--kd-target) * var(--kd-scale)); }
-.kd-app .kd-dialog .button, .kd-app .kd-settings-panel .button, .kd-app .kd-dialog .switch-row, .kd-app .kd-settings-panel .switch-row { min-height: 44px; }
+.kd-app .kd-dialog .button, .kd-app .kd-settings-panel .button, .kd-app .kd-dialog .switch-row, .kd-app .kd-settings-panel .switch-row { min-height: calc(var(--kd-target) * var(--kd-scale)); }
 .kd-banner-warning { border-left-color: #b7791f; background: #fffaf0; }
 
 .kd-handoff {
@@ -301,7 +301,7 @@
   white-space: nowrap;
 }
 .kd-pill-normal { background: #efedeb; color: #453d33; }
-.kd-pill-soon { background: #f6e5c1; color: #6b4708; }
+.kd-pill-soon { background: #f6e5c1; color: #5a3b00; }
 .kd-pill-late { background: #94231b; color: #fff; }
 .kd-pill-escalated { background: #7a1f1a; color: #fff; }
 .kd-pill-neutral { background: #efedeb; color: #514944; }
@@ -454,9 +454,9 @@
 /* Dialogs */
 .kd-dialog-body { display: grid; gap: 15px; padding-top: 16px; }
 .kd-quick-override { display: flex; flex-wrap: wrap; gap: 8px; }
-.kd-quick-override .button { flex: 1; min-height: 46px; }
+.kd-quick-override .button { flex: 1; min-height: calc(var(--kd-target) * var(--kd-scale)); }
 .kd-custom-override { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 10px; }
-.kd-custom-override .button { min-height: 46px; }
+.kd-custom-override .button { min-height: calc(var(--kd-target) * var(--kd-scale)); }
 .kd-dialog-note { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
 
 /* High contrast */

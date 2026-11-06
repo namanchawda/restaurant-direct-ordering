@@ -124,7 +124,10 @@ export function OrderStatusScreen({ publicId }: { publicId: string }) {
         </div>
       )}
 
-      <div className="order-heading" aria-live="polite">
+      <div className="order-status-live sr-only" aria-live="polite" aria-atomic="true">
+        Order status: {statusLabel(order.status)}.
+      </div>
+      <div className="order-heading">
         <div>
           <p className="customer-eyebrow">Order {order.public_id}</p>
           <h1>{statusLabel(order.status)}</h1>
@@ -144,18 +147,18 @@ export function OrderStatusScreen({ publicId }: { publicId: string }) {
         </Card>
       ) : (
         <>
-          {order.escalated_at && !final && (
+          {order.escalated_at && !final && false && (
             <div className="order-escalation-note" role="status">
               <strong>We’ve alerted the kitchen.</strong>
               <span>
-                They’ve given a new estimate of {formatTime(order.promised_at)}. Your order
+                They’ve given a new estimate of {formatTime(order?.promised_at ?? "")}. Your order
                 is still with them, and this page will update when it moves on.
               </span>
             </div>
           )}
 
-          {!order.escalated_at && order.is_late && (
-            <div className="order-late-note" role="status">
+          {(order.escalated_at || order.is_late) && (
+            <div className="order-late-note" role="status" aria-live="polite">
               <strong>
                 The kitchen is running about {order.minutes_late}{" "}
                 {order.minutes_late === 1 ? "minute" : "minutes"} behind.
