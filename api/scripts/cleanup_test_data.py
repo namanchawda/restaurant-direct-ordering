@@ -21,7 +21,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.db.session import create_database_engine
-from app.models import Order, OrderItem, OrderStatusEvent, User
+from app.models import Order, OrderItem, OrderStatusEvent, User, LoyaltyTransaction, LoyaltyAccount, CouponRedemption
 from app.seed import DEMO_USERS, SAMPLE_ORDERS, seed_data
 
 KEEP_USER_PHONES = {user["phone"] for user in DEMO_USERS}
@@ -121,6 +121,8 @@ async def delete_test_data(
             order_ids = [order.id for order, _ in plan.orders]
             user_ids = [user.id for user in plan.users]
             if order_ids:
+                await session.execute(delete(LoyaltyTransaction).where(LoyaltyTransaction.order_id.in_(order_ids)))
+                await session.execute(delete(CouponRedemption).where(CouponRedemption.order_id.in_(order_ids)))
                 await session.execute(
                     delete(OrderStatusEvent).where(
                         OrderStatusEvent.order_id.in_(order_ids)
@@ -131,6 +133,8 @@ async def delete_test_data(
                 )
                 await session.execute(delete(Order).where(Order.id.in_(order_ids)))
             if user_ids:
+                await session.execute(delete(LoyaltyTransaction).where(LoyaltyTransaction.user_id.in_(user_ids)))
+                await session.execute(delete(LoyaltyAccount).where(LoyaltyAccount.user_id.in_(user_ids)))
                 await session.execute(delete(User).where(User.id.in_(user_ids)))
 
         await seed_data(session)

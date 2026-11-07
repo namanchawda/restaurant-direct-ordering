@@ -63,7 +63,8 @@ def test_sample_order_totals_and_late_status_contract() -> None:
 def test_database_constraints_cover_roles_statuses_and_price_ranges() -> None:
     assert {"outlets", "categories", "menu_items", "item_variants", "addons", "riders",
             "item_addons", "city_prices", "outlet_item_availability", "users",
-            "orders", "order_items", "order_status_events"} == set(Base.metadata.tables)
+            "orders", "order_items", "order_status_events", "loyalty_accounts",
+            "loyalty_transactions", "coupons", "coupon_redemptions"} == set(Base.metadata.tables)
     outlet_constraints = {
         constraint.name for constraint in Outlet.__table__.constraints
         if isinstance(constraint, CheckConstraint)

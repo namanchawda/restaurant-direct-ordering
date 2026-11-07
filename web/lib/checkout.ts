@@ -2,6 +2,23 @@ import type { CartLine } from "./cart";
 
 export const ADDRESS_STORAGE_KEY = "hyderabad-biryani-delivery-address";
 
+/** Matches the API's delivery rules (api/app/services/rewards.py: delivery_fee). */
+export const FREE_DELIVERY_THRESHOLD_INR = 499;
+export const DELIVERY_FEE_INR = 30;
+
+export type FreeDeliveryStatus = {
+  remainingInr: number;
+  unlocked: boolean;
+  progress: number;
+};
+
+export function freeDeliveryStatus(subtotalInr: number): FreeDeliveryStatus {
+  const remainingInr = Math.max(0, FREE_DELIVERY_THRESHOLD_INR - subtotalInr);
+  const progress =
+    Math.min(1, Math.max(0, subtotalInr) / FREE_DELIVERY_THRESHOLD_INR);
+  return { remainingInr, unlocked: remainingInr === 0, progress };
+}
+
 export type SavedAddress = {
   address: string;
   lat: number;
@@ -45,6 +62,13 @@ export function distanceKm(lat1: number, lng1: number, lat2: number, lng2: numbe
 
 export function totalsMatch(serverTotal: number, cartTotal: number): boolean {
   return Math.round(serverTotal * 100) === Math.round(cartTotal * 100);
+}
+
+export function payableChanged(serverTotal: number, seenTotal: number): boolean {
+  // `seenTotal` is the payable the customer actually saw (the /orders/quote
+  // total). A raw cart subtotal is not the payable once coupons or points
+  // discounts are applied, so it must never be compared with the server total.
+  return !totalsMatch(serverTotal, seenTotal);
 }
 
 export function readSavedAddress(): SavedAddress | null {

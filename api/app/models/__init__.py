@@ -12,6 +12,10 @@ from app.models.models import (
     OutletItemAvailability,
     Rider,
     User,
+    LoyaltyAccount,
+    LoyaltyTransaction,
+    Coupon,
+    CouponRedemption,
 )
 
 __all__ = [
@@ -28,4 +32,8 @@ __all__ = [
     "OutletItemAvailability",
     "Rider",
     "User",
+    "LoyaltyAccount",
+    "LoyaltyTransaction",
+    "Coupon",
+    "CouponRedemption",
 ]

@@ -14,7 +14,7 @@ new Function("require", "module", "exports", compiled)(
   checkoutModule.exports,
 );
 
-const { cartToOrderItems, distanceKm, SingleFlightOrderCreator, totalsMatch } = checkoutModule.exports;
+const { cartToOrderItems, distanceKm, payableChanged, SingleFlightOrderCreator, totalsMatch } = checkoutModule.exports;
 
 const lines = [
   {
@@ -43,6 +43,14 @@ assert.ok(kukatpallyToKondapur > 4 && kukatpallyToKondapur < 7);
 assert.equal(totalsMatch(380, 380), true);
 assert.equal(totalsMatch(380, 380.4), false);
 
+// payableChanged must compare the server total with the payable the customer
+// saw (the quote total), never with the raw cart subtotal: a discounted
+// payable is not a kitchen price change.
+assert.equal(payableChanged(827, 827), false, "server total equals the quoted payable");
+assert.equal(payableChanged(930, 1030), true, "genuine price change is still flagged");
+assert.equal(payableChanged(827, 1080), true, "server total moving away from a discount is flagged");
+assert.equal(payableChanged(910, 1030), true, "changed item pricing is flagged");
+
 let calls = 0;
 let resolveRequest;
 const creator = new SingleFlightOrderCreator();
@@ -67,4 +75,4 @@ const third = creator.run(async () => {
 assert.equal(await third, "order-2");
 assert.equal(calls, 2);
 
-console.log("Checkout logic passed: payload mapping, distance, total comparison, and single-flight guard.");
+console.log("Checkout logic passed: payload mapping, distance, total and payable comparison, and single-flight guard.");

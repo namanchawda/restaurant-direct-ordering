@@ -127,6 +127,37 @@
   font-size: 12px;
 }
 
+.secondaryMetrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: -4px 0 22px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.secondaryMetric {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.secondaryMetric span,
+.secondaryMetric small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.secondaryMetric strong {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.secondaryMetric small {
+  font-size: 11px;
+}
+
 .detailGrid {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
@@ -355,6 +386,11 @@
     font-size: 21px;
   }
 
+  .secondaryMetrics {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
   .panel {
     padding: 14px;
   }
@@ -423,5 +459,11 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 9px;
+  }
+}
+
+@media (max-width: 390px) {
+  .outletTable .discountColumn {
+    display: none;
   }
 }

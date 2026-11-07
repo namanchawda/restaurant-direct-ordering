@@ -309,6 +309,9 @@ async def test_dashboard_returns_hand_computed_metrics(
         "orders": 5,
         "revenue_inr": 7500,
         "average_order_value_inr": 1500,
+        "definition": "Total payable after coupon and points discounts; item prices incl. 5% GST.",
+        "coupon_discount_inr": 0,
+        "points_discount_inr": 0,
     }
 
 

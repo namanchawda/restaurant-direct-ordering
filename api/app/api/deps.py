@@ -42,6 +42,19 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access token is no longer valid.")
     return user
 
+async def get_optional_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    session: AsyncSession = Depends(get_db),
+) -> User | None:
+    if credentials is None:
+        return None
+    try:
+        claims = jwt.decode(credentials.credentials, get_settings().jwt_secret, algorithms=["HS256"])
+        user_id = UUID(claims["sub"])
+    except (jwt.InvalidTokenError, KeyError, ValueError):
+        return None
+    return await session.get(User, user_id)
+
 
 def require_role(role: str) -> Callable:
     async def dependency(user: User = Depends(get_current_user)) -> User:

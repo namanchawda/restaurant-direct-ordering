@@ -24,6 +24,7 @@ from app.models import (
     OutletItemAvailability,
     User,
     Rider,
+    Coupon,
 )
 from app.schemas import (
     AddonCreate,
@@ -35,12 +36,37 @@ from app.schemas import (
     CityPriceUpdate,
     MenuItemCreate,
     MenuItemUpdate,
+    CouponCreate,
+    CouponUpdate,
 )
 from app.services.delivery import generate_route, trip_duration
 from app.services.events import publish_order_event
 from app.services.order_payload import order_load_options, serialize_order
+from app.services.rewards import settle_order_rewards
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+def _coupon_data(coupon: Coupon) -> dict[str, object]:
+    return {"id": str(coupon.id), "code": coupon.code, "type": coupon.type, "value": coupon.value, "min_order_inr": coupon.min_order_inr, "max_discount_inr": coupon.max_discount_inr, "valid_from": coupon.valid_from, "valid_to": coupon.valid_to, "usage_limit_total": coupon.usage_limit_total, "usage_limit_per_user": coupon.usage_limit_per_user, "first_order_only": coupon.first_order_only, "active": coupon.active, "is_demo": coupon.is_demo}
+
+@router.get("/coupons")
+async def list_coupons(_: User = Depends(require_role("admin")), session: AsyncSession = Depends(get_db)) -> list[dict[str, object]]:
+    return [_coupon_data(c) for c in (await session.scalars(select(Coupon).order_by(Coupon.code))).all()]
+
+@router.post("/coupons", status_code=201)
+async def create_coupon(payload: CouponCreate, _: User = Depends(require_role("admin")), session: AsyncSession = Depends(get_db)) -> dict[str, object]:
+    coupon = Coupon(**payload.model_dump(exclude_unset=True, exclude={"code"}), code=payload.code.strip().upper())
+    session.add(coupon)
+    try: await session.commit()
+    except IntegrityError: await session.rollback(); raise HTTPException(status_code=409, detail="Coupon code already exists.") from None
+    await session.refresh(coupon); return _coupon_data(coupon)
+
+@router.patch("/coupons/{coupon_id}")
+async def update_coupon(coupon_id: UUID, payload: CouponUpdate, _: User = Depends(require_role("admin")), session: AsyncSession = Depends(get_db)) -> dict[str, object]:
+    coupon = await session.get(Coupon, coupon_id)
+    if coupon is None: raise HTTPException(status_code=404, detail="Coupon not found.")
+    for key, value in payload.model_dump(exclude_unset=True).items(): setattr(coupon, key, value)
+    await session.commit(); await session.refresh(coupon); return _coupon_data(coupon)
 
 
 @router.post("/demo/advance-order")
@@ -73,6 +99,10 @@ async def demo_advance_order(
         if order.picked_up_at is None:
             raise HTTPException(status_code=409, detail="Cannot deliver before pickup.")
         order.delivered_at = now
+    if next_status in {"delivered", "cancelled"}:
+        if next_status == "cancelled" and order.payment_status != "paid" and order.coupon_redemption is not None:
+            await session.delete(order.coupon_redemption)
+        await settle_order_rewards(session, order)
     order.status_events.append(OrderStatusEvent(status=next_status, at=now))
     await session.commit()
     order = await session.scalar(select(Order).options(*order_load_options()).where(Order.public_id == public_id))
@@ -110,6 +140,8 @@ def _empty_dashboard_metrics() -> dict[str, Any]:
     return {
         "orders_count": 0,
         "revenue_inr": 0,
+        "coupon_discount_inr": 0,
+        "points_discount_inr": 0,
         "avg_order_value_inr": None,
         "avg_promised_minutes": None,
         "median_promised_minutes": None,
@@ -164,6 +196,8 @@ async def dashboard_data(
             [
                 func.count(Order.id).label("orders_count"),
                 func.coalesce(func.sum(Order.total_inr), 0).label("revenue_inr"),
+                func.coalesce(func.sum(Order.coupon_discount_inr), 0).label("coupon_discount_inr"),
+                func.coalesce(func.sum(Order.points_discount_inr), 0).label("points_discount_inr"),
                 func.avg(Order.total_inr).label("avg_order_value_inr"),
                 func.avg(promised_minutes).label("avg_promised_minutes"),
                 func.percentile_cont(0.5).within_group(promised_minutes).label(
@@ -236,6 +270,8 @@ async def dashboard_data(
         for key in (
             "orders_count",
             "revenue_inr",
+            "coupon_discount_inr",
+            "points_discount_inr",
             "late_count",
             "escalated_count",
             "cancellations_count",
@@ -377,6 +413,9 @@ async def dashboard_data(
             "orders": overall["orders_count"],
             "revenue_inr": overall["revenue_inr"],
             "average_order_value_inr": overall["avg_order_value_inr"] or 0,
+            "definition": "Total payable after coupon and points discounts; item prices incl. 5% GST.",
+            "coupon_discount_inr": overall["coupon_discount_inr"],
+            "points_discount_inr": overall["points_discount_inr"],
         },
         "total": overall,
         "outlets": list(per_outlet.values()),

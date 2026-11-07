@@ -25,11 +25,12 @@ import {
 } from "@/lib/cart";
 import {
   cartToOrderItems,
+  DELIVERY_FEE_INR,
   distanceKm,
+  payableChanged,
   readSavedAddress,
   saveAddress,
   SingleFlightOrderCreator,
-  totalsMatch,
 } from "@/lib/checkout";
 import { formatINR, LOCATION_STORAGE_KEY } from "@/lib/customer";
 import { formatItemCount, formatTime } from "@/lib/format";
@@ -38,10 +39,23 @@ import { formatCardNumber, formatExpiry, validatePayment } from "@/lib/payment";
 import type { PaymentMethod } from "@/lib/payment";
 import { orderItemCount, orderItemTotal } from "@/lib/orders";
 import type { Order, PaymentResult } from "@/lib/orders";
+import {
+  clearSavedUnpaidOrder,
+  isUnpaidOrder,
+  readSavedUnpaidOrder,
+  saveUnpaidOrder,
+} from "@/lib/unpaid-order";
 import { useAuth } from "@/lib/auth";
 
 type AuthStage = "phone" | "otp" | "name";
 type FieldErrors = Record<string, string>;
+type CouponOffer = {
+  code: string;
+  description: string;
+  eligible: boolean;
+  discount_inr: number;
+  reason: string | null;
+};
 
 const FIELD_IDS: Record<string, string> = {
   address: "checkout-address",
@@ -137,14 +151,61 @@ export function CheckoutScreen() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [order, setOrder] = useState<Order | null>(null);
+  const [restoredOrder, setRestoredOrder] = useState(false);
+  const [cancellingOrder, setCancellingOrder] = useState(false);
   const [priceChanged, setPriceChanged] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState("");
+  const [couponMessage, setCouponMessage] = useState<string | null>(null);
+  const [couponOffers, setCouponOffers] = useState<CouponOffer[]>([]);
+  const [redeemPoints, setRedeemPoints] = useState(0);
+  const [loyalty, setLoyalty] = useState<{ balance_points: number; value_inr: number } | null>(null);
+  const [quote, setQuote] = useState<{ items_subtotal_inr: number; coupon_discount_inr: number; points_discount_inr: number; delivery_fee_inr: number; total_inr: number; earn_points: number } | null>(null);
   const submittingRef = useRef(false);
   const orderCreator = useRef(new SingleFlightOrderCreator<Order>());
 
   const phoneDigits = phone.replace(/\D+/g, "").slice(0, 10);
+  const isSignedInCustomer = user?.role === "customer";
   const outletRequestKey = cart.outletId ? `${cart.outletId}:${outletAttempt}` : "";
   const outletLoading = Boolean(cart.outletId) && loadedOutletKey !== outletRequestKey;
+
+  useEffect(() => {
+    if (!isSignedInCustomer) return;
+    const savedOrder = readSavedUnpaidOrder();
+    if (!savedOrder) return;
+    let active = true;
+    const timer = window.setTimeout(() => {
+      if (!active) return;
+      setOrder(savedOrder);
+      setRestoredOrder(true);
+      void api<Order>(`/orders/${encodeURIComponent(savedOrder.public_id)}`)
+        .then((currentOrder) => {
+          if (!active) return;
+          if (isUnpaidOrder(currentOrder)) {
+            setOrder(currentOrder);
+            saveUnpaidOrder(currentOrder);
+          } else {
+            setOrder(null);
+            setRestoredOrder(false);
+            clearSavedUnpaidOrder();
+          }
+        })
+        .catch((error: unknown) => {
+          if (error instanceof ApiError && error.status === 404) {
+            setOrder(null);
+            setRestoredOrder(false);
+            clearSavedUnpaidOrder();
+            return;
+          }
+          // Keep the locally saved order visible so a temporary network failure does not hide it.
+        });
+    }, 0);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [isSignedInCustomer]);
 
   useEffect(() => {
     if (!cart.outletId) return;
@@ -200,6 +261,23 @@ export function CheckoutScreen() {
       active = false;
     };
   }, [cart.outletId, outletAttempt, outletRequestKey]);
+
+  useEffect(() => {
+    if (!outlet || !isSignedInCustomer) return;
+    let active = true;
+    void api<{ balance_points: number; value_inr: number }>("/loyalty/me").then((value) => { if (active) setLoyalty(value); }).catch(() => undefined);
+    void api<{ items_subtotal_inr: number; coupon_discount_inr: number; points_discount_inr: number; delivery_fee_inr: number; total_inr: number; earn_points: number }>("/orders/quote", { method: "POST", body: JSON.stringify({ outlet_id: outlet.id, items: cartToOrderItems(cart.lines), coupon_code: appliedCoupon || undefined, redeem_points: redeemPoints }) }).then((value) => { if (active) setQuote(value); }).catch((error: unknown) => { if (active) setCouponMessage(checkoutMessage(error)); });
+    return () => { active = false; };
+  }, [outlet, isSignedInCustomer, appliedCoupon, redeemPoints, cart.lines]);
+
+  useEffect(() => {
+    if (!outlet || !isSignedInCustomer) return;
+    let active = true;
+    void api<CouponOffer[]>("/coupons/eligible", { method: "POST", body: JSON.stringify({ outlet_id: outlet.id, items: cartToOrderItems(cart.lines) }) })
+      .then((value) => { if (active) setCouponOffers(value); })
+      .catch(() => { if (active) setCouponOffers([]); });
+    return () => { active = false; };
+  }, [outlet, isSignedInCustomer, cart.lines]);
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -296,12 +374,48 @@ export function CheckoutScreen() {
     }
   }
 
+  function applyCouponChip(code: string) {
+    setAppliedCoupon(code);
+    setCouponCode(code);
+    setCouponMessage(null);
+  }
+
+  function removeCoupon() {
+    setAppliedCoupon("");
+    setCouponCode("");
+    setCouponMessage(null);
+  }
+
   function changeContact() {
     resetAuth(user?.phone ?? "");
     setOrder(null);
+    setRestoredOrder(false);
     setPriceChanged(false);
     setFormError(null);
     logout();
+  }
+
+  async function cancelUnpaidOrder() {
+    if (!order || cancellingOrder || !isUnpaidOrder(order)) return;
+    if (!window.confirm(`Cancel unpaid order ${order.public_id}? Your cart will stay ready to start again.`)) {
+      return;
+    }
+    setCancellingOrder(true);
+    setFormError(null);
+    try {
+      await api<Order>(`/orders/${encodeURIComponent(order.public_id)}/cancel`, {
+        method: "POST",
+        body: JSON.stringify({ reason: "Cancelled by customer" }),
+      });
+      setOrder(null);
+      setRestoredOrder(false);
+      clearSavedUnpaidOrder();
+      toast("Order cancelled. Your cart is still here.", "success");
+    } catch (error) {
+      setFormError(checkoutMessage(error));
+    } finally {
+      setCancellingOrder(false);
+    }
   }
 
   function useCurrentLocation() {
@@ -386,11 +500,15 @@ export function CheckoutScreen() {
               },
               phone: user.phone,
               notes: cart.notes.trim() || undefined,
+              coupon_code: appliedCoupon || undefined,
+              redeem_points: redeemPoints,
             }),
           }),
         );
         setOrder(currentOrder);
-        if (!totalsMatch(currentOrder.total_inr, cartSubtotal(cart.lines))) {
+        setRestoredOrder(false);
+        saveUnpaidOrder(currentOrder);
+        if (payableChanged(currentOrder.total_inr, quote?.total_inr ?? cartSubtotal(cart.lines))) {
           setPriceChanged(true);
           return;
         }
@@ -407,12 +525,18 @@ export function CheckoutScreen() {
 
       if (result.payment_status === "paid") {
         saveAddress({ address: address.trim(), lat: coords.lat, lng: coords.lng });
+        clearSavedUnpaidOrder();
         clearCart();
         router.push(`/order/${currentOrder.public_id}`);
         return;
       }
 
       setOrder({
+        ...currentOrder,
+        payment_status: result.payment_status,
+        payment_method: paymentMethod,
+      });
+      saveUnpaidOrder({
         ...currentOrder,
         payment_status: result.payment_status,
         payment_method: paymentMethod,
@@ -465,10 +589,10 @@ export function CheckoutScreen() {
 
   const subtotal = cartSubtotal(cart.lines);
   const gstAmount = includedGstAmount(subtotal);
-  const summarySubtotal = order?.total_inr ?? subtotal;
+  const summarySubtotal = order?.items_subtotal_inr ?? quote?.items_subtotal_inr ?? subtotal;
   const summaryGst = order?.gst_included_inr ?? gstAmount;
   const summaryCount = order ? orderItemCount(order) : cartItemCount(cart.lines);
-  const displayTotal = order?.total_inr ?? subtotal;
+  const displayTotal = order?.total_inr ?? quote?.total_inr ?? subtotal;
   const deliveryDistance =
     outlet && coords ? distanceKm(coords.lat, coords.lng, outlet.lat, outlet.lng) : null;
   const outsideRadius =
@@ -672,6 +796,67 @@ export function CheckoutScreen() {
                     Change
                   </button>
                 </div>
+              </Card>
+
+              <Card className="checkout-card offers-rewards-card">
+                <div className="checkout-card-heading-row">
+                  <div><p className="checkout-step-label">Offers and rewards</p><h2>Save on this order</h2></div>
+                  {loyalty && <Badge tone="success">{loyalty.balance_points} pts</Badge>}
+                </div>
+                <div className="coupon-entry">
+                  <Input aria-label="Coupon code" placeholder="Enter coupon code" value={couponCode} onChange={(event) => setCouponCode(event.target.value.toUpperCase())} />
+                  <Button type="button" variant="secondary" onClick={() => { setAppliedCoupon(couponCode.trim()); setCouponMessage(couponCode.trim() ? "Checking coupon…" : null); }}>Apply</Button>
+                </div>
+                {appliedCoupon ? (
+                  quote?.coupon_discount_inr
+                    ? (
+                      <div className="coupon-applied-row" role="status">
+                        <span><strong>{appliedCoupon}</strong> applied · save Rs {quote.coupon_discount_inr}</span>
+                        <button type="button" className="checkout-text-link" onClick={removeCoupon}>Remove</button>
+                      </div>
+                    )
+                    : (
+                      <div className="coupon-applied-row" role="status">
+                        <span>Checking {appliedCoupon}…</span>
+                        <button type="button" className="checkout-text-link" onClick={removeCoupon}>Remove</button>
+                      </div>
+                    )
+                ) : couponMessage && <p className="checkout-hint" role="status">{couponMessage}</p>}
+                {couponOffers.length > 0 && (
+                  <div className="coupon-chips" role="group" aria-label="Available coupons">
+                    {couponOffers.map((offer) => (
+                      <div key={offer.code} className="coupon-chip-slot">
+                        {offer.eligible ? (
+                          <button
+                            type="button"
+                            className={`coupon-chip${appliedCoupon === offer.code ? " selected" : ""}`}
+                            aria-pressed={appliedCoupon === offer.code}
+                            onClick={() => applyCouponChip(offer.code)}
+                          >
+                            <strong>{offer.code}</strong>
+                            <span>save Rs {offer.discount_inr}</span>
+                          </button>
+                        ) : (
+                          <div className="coupon-chip disabled" aria-disabled="true">
+                            <strong>{offer.code}</strong>
+                          </div>
+                        )}
+                        <small>{offer.eligible ? offer.description : offer.reason}</small>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {loyalty ? (
+                  <div className="points-block">
+                    <div><strong>{loyalty.balance_points} points</strong><span>Worth {formatINR(loyalty.value_inr)}</span></div>
+                    <div className="points-stepper" aria-label="Points to redeem">
+                      <button type="button" aria-label="Use fewer points" onClick={() => setRedeemPoints((value) => Math.max(0, value - 100))}>−</button>
+                      <strong>{redeemPoints}</strong>
+                      <button type="button" aria-label="Use more points" onClick={() => setRedeemPoints((value) => Math.min(loyalty.balance_points, value + 100))}>+</button>
+                    </div>
+                    <span className="checkout-hint">Use points in steps of 100. Maximum 20% of this order.</span>
+                  </div>
+                ) : <p className="checkout-hint">Sign in to use points.</p>}
               </Card>
 
               <Card className="checkout-card">
@@ -887,32 +1072,53 @@ export function CheckoutScreen() {
                   </div>
                 )}
                 {order && !priceChanged && (
-                  <p className="checkout-saved-order">
-                    Order <strong>{order.public_id}</strong> is saved. Payment is still needed.
-                  </p>
+                  <div className="checkout-saved-order" role={restoredOrder ? "status" : undefined}>
+                    <p>
+                      {restoredOrder
+                        ? <>You have an unpaid order <strong>{order.public_id}</strong>.</>
+                        : <>Order <strong>{order.public_id}</strong> is saved. Payment is still needed.</>}
+                    </p>
+                    {restoredOrder && <p>Choose Pay now to continue, or cancel it to start again with this cart.</p>}
+                  </div>
                 )}
                 {formError && <p className="checkout-inline-error" role="alert">{formError}</p>}
-                <Button
-                  className="checkout-place-button"
-                  type="submit"
-                  variant="primary"
-                  disabled={
-                    submitting ||
-                    outletLoading ||
-                    !outlet ||
-                    !coords ||
-                    outsideRadius ||
-                    !outlet.is_open
-                  }
-                >
-                  {submitting
-                    ? order ? "Paying…" : "Placing order…"
-                    : priceChanged
-                      ? `Pay ${formatINR(displayTotal)} now`
-                      : order
-                        ? `Try payment again · ${formatINR(displayTotal)}`
-                        : `Place order · ${formatINR(displayTotal)}`}
-                </Button>
+                <div className="checkout-payment-actions">
+                  <Button
+                    className="checkout-place-button"
+                    type="submit"
+                    variant="primary"
+                    disabled={
+                      submitting ||
+                      cancellingOrder ||
+                      outletLoading ||
+                      !outlet ||
+                      !coords ||
+                      outsideRadius ||
+                      !outlet.is_open
+                    }
+                  >
+                    {submitting
+                      ? order ? "Paying…" : "Placing order…"
+                      : priceChanged
+                        ? `Pay ${formatINR(displayTotal)} now`
+                        : restoredOrder
+                          ? "Pay now"
+                          : order
+                            ? `Try payment again · ${formatINR(displayTotal)}`
+                            : `Place order · ${formatINR(displayTotal)}`}
+                  </Button>
+                  {order && isUnpaidOrder(order) && (
+                    <Button
+                      className="checkout-cancel-order-button"
+                      type="button"
+                      variant="secondary"
+                      disabled={submitting || cancellingOrder}
+                      onClick={() => void cancelUnpaidOrder()}
+                    >
+                      {cancellingOrder ? "Cancelling…" : "Cancel this order"}
+                    </Button>
+                  )}
+                </div>
                 <p className="checkout-hint">
                   By placing this order you agree to our{" "}
                   <Link href="/privacy">privacy notice</Link>. Payment is simulated for this
@@ -969,6 +1175,9 @@ export function CheckoutScreen() {
               <span>GST included</span>
               <strong>{formatINR(summaryGst)}</strong>
             </div>
+            {(quote?.coupon_discount_inr ?? order?.coupon_discount_inr ?? 0) > 0 && <div className="cart-total-row"><span>Coupon {appliedCoupon || order?.coupon_code}</span><strong>−{formatINR(quote?.coupon_discount_inr ?? order?.coupon_discount_inr ?? 0)}</strong></div>}
+            {(quote?.points_discount_inr ?? order?.points_discount_inr ?? 0) > 0 && <div className="cart-total-row"><span>Points</span><strong>−{formatINR(quote?.points_discount_inr ?? order?.points_discount_inr ?? 0)}</strong></div>}
+            <div className="cart-total-row"><span>Delivery fee</span><strong>{formatINR(quote?.delivery_fee_inr ?? order?.delivery_fee_inr ?? DELIVERY_FEE_INR)}</strong></div>
             <div className="cart-total-row cart-grand-total">
               <strong>Total</strong>
               <Price amount={displayTotal} showGst={false} />
@@ -982,6 +1191,7 @@ export function CheckoutScreen() {
               Prices include 5% GST. The server confirms availability and the final total before
               payment.
             </p>
+            <p className="checkout-summary-arrival">You will earn {quote?.earn_points ?? order?.earn_points ?? Math.floor(subtotal / 10)} points when delivered.</p>
           </Card>
         </aside>
       </div>

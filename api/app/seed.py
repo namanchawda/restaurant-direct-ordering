@@ -21,6 +21,7 @@ from app.models import (
     OutletItemAvailability,
     Rider,
     User,
+    Coupon,
 )
 
 CATEGORIES = [
@@ -545,6 +546,21 @@ async def seed_data(session: AsyncSession) -> None:
                     ),
                 ]
             )
+
+        demo_coupons = [
+            {"code": "WELCOME100", "type": "flat", "value": 100, "min_order_inr": 399, "first_order_only": True},
+            {"code": "BIRYANI10", "type": "percent", "value": 10, "max_discount_inr": 120, "min_order_inr": 299},
+            {"code": "PARTY15", "type": "percent", "value": 15, "max_discount_inr": 500, "min_order_inr": 1500},
+            {"code": "FREESHIP", "type": "flat", "value": 30, "min_order_inr": 249},
+        ]
+        coupons = {c.code: c for c in (await session.scalars(select(Coupon).where(Coupon.code.in_([x["code"] for x in demo_coupons])))).all()}
+        for data in demo_coupons:
+            coupon = coupons.get(data["code"])
+            if coupon is None:
+                coupon = Coupon(**data, is_demo=True); session.add(coupon)
+            else:
+                for key, value in data.items(): setattr(coupon, key, value)
+                coupon.is_demo = True
 
     print(
         f"Seeded {len(OUTLETS)} outlets, {len(MENU_ITEMS)} menu items, "

@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     escalation_minutes: int = Field(default=10, ge=1)
     escalation_extend_minutes: int = Field(default=10, ge=1)
     escalation_check_interval_seconds: int = Field(default=30, ge=5)
+    unpaid_order_timeout_minutes: int = Field(default=15, ge=1)
     kitchen_busy_queue_minutes: float = Field(default=10, gt=0)
     delivery_speed_kmh: float = Field(default=22, gt=0)
     delivery_sim_speed: float = Field(default=1, gt=0)

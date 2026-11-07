@@ -14,6 +14,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </Link>
         <div className="topbar-right">
           <Link href="/admin/dashboard">Dashboard</Link>
+          <Link href="/admin/coupons">Coupons</Link>
           <span className="user-chip"><span className="user-avatar">A</span>{user?.name || "Admin"}</span>
           <button className="text-button" type="button" onClick={logout}>Sign out</button>
         </div>

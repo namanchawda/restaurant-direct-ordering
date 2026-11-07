@@ -228,6 +228,13 @@ class User(Base):
 
     outlet: Mapped["Outlet | None"] = relationship(back_populates="users")
     orders: Mapped[list["Order"]] = relationship(back_populates="user")
+    loyalty_account: Mapped["LoyaltyAccount | None"] = relationship(back_populates="user", cascade="all, delete-orphan", uselist=False)
+    loyalty_transactions: Mapped[list["LoyaltyTransaction"]] = relationship(
+        back_populates="user", foreign_keys="LoyaltyTransaction.user_id"
+    )
+    coupon_redemptions: Mapped[list["CouponRedemption"]] = relationship(
+        back_populates="user", foreign_keys="CouponRedemption.user_id"
+    )
 
 
 class Rider(Base):
@@ -272,6 +279,12 @@ class Order(TimestampMixin, Base):
     payment_method: Mapped[str] = mapped_column(String(16), nullable=False)
     payment_status: Mapped[str] = mapped_column(String(16), nullable=False)
     total_inr: Mapped[int] = mapped_column(Integer, nullable=False)
+    items_subtotal_inr: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    coupon_discount_inr: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    points_discount_inr: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    delivery_fee_inr: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    coupon_code: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    redeemed_points: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
     delivery_address: Mapped[str | None] = mapped_column(Text, nullable=True)
     delivery_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
     delivery_lng: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -302,6 +315,10 @@ class Order(TimestampMixin, Base):
         back_populates="order",
         cascade="all, delete-orphan",
         order_by="OrderStatusEvent.at",
+    )
+    coupon_redemption: Mapped["CouponRedemption | None"] = relationship(back_populates="order", uselist=False)
+    loyalty_transactions: Mapped[list["LoyaltyTransaction"]] = relationship(
+        back_populates="order", foreign_keys="LoyaltyTransaction.order_id"
     )
 
     @property
@@ -359,3 +376,73 @@ class OrderStatusEvent(Base):
     at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     order: Mapped["Order"] = relationship(back_populates="status_events")
+
+
+class LoyaltyAccount(Base):
+    __tablename__ = "loyalty_accounts"
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    balance_points: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    lifetime_points: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    user: Mapped["User"] = relationship(back_populates="loyalty_account")
+    transactions: Mapped[list["LoyaltyTransaction"]] = relationship(
+        back_populates="account",
+        primaryjoin="LoyaltyAccount.user_id == LoyaltyTransaction.user_id",
+        foreign_keys="LoyaltyTransaction.user_id",
+        viewonly=True,
+    )
+
+
+class LoyaltyTransaction(Base):
+    __tablename__ = "loyalty_transactions"
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    order_id: Mapped[UUID | None] = mapped_column(ForeignKey("orders.id", ondelete="SET NULL"), nullable=True, index=True)
+    type: Mapped[str] = mapped_column(String(16), nullable=False)
+    points: Mapped[int] = mapped_column(Integer, nullable=False)
+    balance_after: Mapped[int] = mapped_column(Integer, nullable=False)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    user: Mapped["User"] = relationship(
+        back_populates="loyalty_transactions", foreign_keys=[user_id]
+    )
+    order: Mapped["Order | None"] = relationship(
+        back_populates="loyalty_transactions", foreign_keys=[order_id]
+    )
+    account: Mapped["LoyaltyAccount"] = relationship(
+        back_populates="transactions",
+        primaryjoin="LoyaltyTransaction.user_id == LoyaltyAccount.user_id",
+        foreign_keys=[user_id],
+        viewonly=True,
+    )
+
+
+class Coupon(Base):
+    __tablename__ = "coupons"
+    __table_args__ = (CheckConstraint("type IN ('percent', 'flat')", name="ck_coupons_type"), CheckConstraint("value >= 0", name="ck_coupons_value"))
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    code: Mapped[str] = mapped_column(String(40), unique=True, nullable=False)
+    type: Mapped[str] = mapped_column(String(16), nullable=False)
+    value: Mapped[int] = mapped_column(Integer, nullable=False)
+    min_order_inr: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    max_discount_inr: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    valid_from: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    valid_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    usage_limit_total: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    usage_limit_per_user: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    first_order_only: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    redemptions: Mapped[list["CouponRedemption"]] = relationship(back_populates="coupon", cascade="all, delete-orphan")
+
+
+class CouponRedemption(Base):
+    __tablename__ = "coupon_redemptions"
+    __table_args__ = (UniqueConstraint("coupon_id", "order_id", name="uq_coupon_redemption_order"),)
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    coupon_id: Mapped[UUID] = mapped_column(ForeignKey("coupons.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    order_id: Mapped[UUID] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    coupon: Mapped["Coupon"] = relationship(back_populates="redemptions")
+    user: Mapped["User"] = relationship(back_populates="coupon_redemptions", foreign_keys=[user_id])
+    order: Mapped["Order"] = relationship(back_populates="coupon_redemption")

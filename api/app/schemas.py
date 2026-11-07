@@ -1,4 +1,4 @@
-from datetime import time
+from datetime import datetime, time
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -36,6 +36,7 @@ class OrderLineInput(APIModel):
     variant_id: UUID | None = None
     addon_ids: list[UUID] = Field(default_factory=list)
     quantity: Annotated[int, Field(ge=1, le=20)]
+    # Legacy client fields are accepted for compatibility and deliberately ignored by pricing.
     price: int | None = None
     price_inr: int | None = None
 
@@ -47,11 +48,56 @@ class OrderCreate(APIModel):
     delivery_address: DeliveryAddress
     phone: Annotated[str, Field(min_length=8, max_length=20)]
     notes: Annotated[str | None, Field(default=None, max_length=1000)]
+    redeem_points: Annotated[int, Field(default=0, ge=0)] = 0
+    coupon_code: Annotated[str | None, Field(default=None, max_length=40)] = None
+
+
+class OrderQuote(APIModel):
+    outlet_id: UUID
+    items: Annotated[list[OrderLineInput], Field(min_length=1)]
+    redeem_points: Annotated[int, Field(default=0, ge=0)] = 0
+    coupon_code: Annotated[str | None, Field(default=None, max_length=40)] = None
+    user_id: UUID | None = None
+
+
+class CouponValidate(APIModel):
+    code: Annotated[str, Field(min_length=1, max_length=40)]
+    outlet_id: UUID
+    items: Annotated[list[OrderLineInput], Field(min_length=1)]
+
+
+class CouponEligible(APIModel):
+    outlet_id: UUID
+    items: Annotated[list[OrderLineInput], Field(min_length=1)]
+
+
+class CouponCreate(APIModel):
+    code: Annotated[str, Field(min_length=2, max_length=40)]
+    type: Literal["percent", "flat"]
+    value: Annotated[int, Field(gt=0)]
+    min_order_inr: Annotated[int, Field(ge=0)] = 0
+    max_discount_inr: Annotated[int | None, Field(default=None, ge=0)] = None
+    valid_from: datetime | None = None
+    valid_to: datetime | None = None
+    usage_limit_total: Annotated[int | None, Field(default=None, gt=0)] = None
+    usage_limit_per_user: Annotated[int | None, Field(default=None, gt=0)] = None
+    first_order_only: bool = False
+    active: bool = True
+
+
+class CouponUpdate(APIModel):
+    active: bool | None = None
+    value: Annotated[int | None, Field(default=None, gt=0)] = None
+    min_order_inr: Annotated[int | None, Field(default=None, ge=0)] = None
 
 
 class PaymentRequest(APIModel):
     upi_id: Annotated[str | None, Field(default=None, max_length=120)]
     card_number: Annotated[str | None, Field(default=None, max_length=32)]
+
+
+class CancelRequest(APIModel):
+    reason: Annotated[str, Field(min_length=1, max_length=500)]
 
 
 class StatusUpdate(APIModel):

@@ -17,6 +17,7 @@ import {
   makeCartLine,
 } from "@/lib/cart";
 import type { CartLine } from "@/lib/cart";
+import { FREE_DELIVERY_THRESHOLD_INR } from "@/lib/checkout";
 import { formatINR, servedWindow } from "@/lib/customer";
 import type { MenuItem, OutletMenu } from "@/lib/customer";
 import { openOrderAgainItem } from "@/lib/order-suggestions";
@@ -551,7 +552,11 @@ export function MenuScreen({
                   return item ? <button className="category-photo-tile" type="button" key={category.id} onClick={() => jumpToCategory(category.id)}><FoodImage src={item.photo_url} name={category.name} isVeg={item.is_veg} className="category-photo" /><strong>{category.name}</strong></button> : null;
                 })}
               </div>
-              <div className="offers-strip"><span aria-hidden="true">✦</span><strong>Good food, made direct</strong><span>Free delivery over a threshold · Earn points on every direct order</span><em>Coming in the next steps</em></div>
+              <div className="offers-strip">
+                <span aria-hidden="true">✦</span>
+                <strong>Good food, made direct</strong>
+                <span>Free delivery over Rs {FREE_DELIVERY_THRESHOLD_INR} · Earn points on every direct order · Coupons at checkout</span>
+              </div>
             </section>
           )}
 

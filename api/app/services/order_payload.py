@@ -25,6 +25,7 @@ def order_load_options():
         selectinload(Order.user),
         selectinload(Order.rider),
         selectinload(Order.outlet),
+        selectinload(Order.coupon_redemption),
     )
 
 
@@ -56,6 +57,14 @@ def serialize_order(order: Order) -> dict[str, object]:
     is_escalated = (
         order.escalated_at is not None and order.escalation_acknowledged_at is None
     )
+    # Step 12 stored the pricing breakdown, but orders created before it (and
+    # unsaved in-memory orders) have None there. Fall back to the total as the
+    # subtotal and to zero for every missing discount/fee.
+    subtotal = order.total_inr if order.items_subtotal_inr is None else order.items_subtotal_inr
+    coupon_off = 0 if order.coupon_discount_inr is None else order.coupon_discount_inr
+    points_off = 0 if order.points_discount_inr is None else order.points_discount_inr
+    delivery_off = 0 if order.delivery_fee_inr is None else order.delivery_fee_inr
+    redeemed_points = 0 if order.redeemed_points is None else order.redeemed_points
     return {
         "public_id": order.public_id,
         "outlet_id": str(order.outlet_id),
@@ -63,6 +72,13 @@ def serialize_order(order: Order) -> dict[str, object]:
         "payment_method": order.payment_method,
         "payment_status": order.payment_status,
         "total_inr": order.total_inr,
+        "items_subtotal_inr": subtotal,
+        "coupon_discount_inr": coupon_off,
+        "points_discount_inr": points_off,
+        "delivery_fee_inr": delivery_off,
+        "coupon_code": order.coupon_code,
+        "redeemed_points": redeemed_points,
+        "earn_points": max(0, (subtotal - coupon_off) // 10),
         "gst_included_inr": gst_included,
         "placed_at": order.placed_at,
         "promised_at": order.promised_at,
@@ -91,6 +107,7 @@ def serialize_order(order: Order) -> dict[str, object]:
         "delivery_eta_at": order.delivery_eta_at,
         "is_escalated": is_escalated,
         "price_note": "incl. 5% GST",
+        "delivery_fee_note": "Delivery fee shown separately; item prices incl. 5% GST.",
         "items": [
             {
                 "name": item.name,

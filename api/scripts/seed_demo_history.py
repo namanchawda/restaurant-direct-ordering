@@ -11,7 +11,7 @@ if __package__ in (None, ""):
 from sqlalchemy import delete, select
 
 from app.db.session import get_session_factory
-from app.models import Category, MenuItem, Order, OrderItem, OrderStatusEvent, Outlet, User
+from app.models import Category, MenuItem, Order, OrderItem, OrderStatusEvent, Outlet, User, LoyaltyAccount, LoyaltyTransaction
 
 PHONE_PREFIX = "7000"
 
@@ -19,7 +19,10 @@ PHONE_PREFIX = "7000"
 async def remove() -> None:
     async with get_session_factory()() as session:
         users = (await session.scalars(select(User).where(User.phone.like(f"{PHONE_PREFIX}%")))).all()
-        await session.execute(delete(Order).where(Order.user_id.in_([user.id for user in users])))
+        user_ids = [user.id for user in users]
+        await session.execute(delete(LoyaltyTransaction).where(LoyaltyTransaction.user_id.in_(user_ids)))
+        await session.execute(delete(LoyaltyAccount).where(LoyaltyAccount.user_id.in_(user_ids)))
+        await session.execute(delete(Order).where(Order.user_id.in_(user_ids)))
         await session.execute(delete(User).where(User.phone.like(f"{PHONE_PREFIX}%")))
         await session.commit()
         print(f"Removed demo history for {len(users)} users.")
@@ -50,7 +53,8 @@ async def seed() -> None:
                 prep = 24 + (index % 5) * 3 + (10 if peak else 0)
                 ready = placed + timedelta(minutes=prep)
                 order_number += 1
-                order = Order(public_id=f"DEMO-7000-{order_number:05d}", outlet_id=outlet.id, user_id=user.id, status=status, payment_method="upi", payment_status="paid", total_inr=450 + index * 20, delivery_address="Demo address, Hyderabad", placed_at=placed, promised_at=placed + timedelta(minutes=30), ai_estimate_minutes=30)
+                subtotal = 450 + index * 20
+                order = Order(public_id=f"DEMO-7000-{order_number:05d}", outlet_id=outlet.id, user_id=user.id, status=status, payment_method="upi", payment_status="paid", total_inr=subtotal, items_subtotal_inr=subtotal, delivery_address="Demo address, Hyderabad", placed_at=placed, promised_at=placed + timedelta(minutes=30), ai_estimate_minutes=30)
                 item = items[index % len(items)]
                 order.items.append(OrderItem(item_id=item.id, name=item.name, unit_price_inr=item.base_price_inr, quantity=1))
                 order.status_events.extend([OrderStatusEvent(status="placed", at=placed), OrderStatusEvent(status="accepted", at=placed + timedelta(minutes=2)), OrderStatusEvent(status="preparing", at=placed + timedelta(minutes=4))])
@@ -60,6 +64,12 @@ async def seed() -> None:
                 else:
                     order.status_events.extend([OrderStatusEvent(status="ready_for_pickup", at=ready), OrderStatusEvent(status="handed_to_rider", at=ready + timedelta(minutes=3)), OrderStatusEvent(status="delivered", at=ready + timedelta(minutes=25))])
                 session.add(order)
+                account = await session.scalar(select(LoyaltyAccount).where(LoyaltyAccount.user_id == user.id))
+                if account is None:
+                    account = LoyaltyAccount(user_id=user.id, balance_points=0, lifetime_points=0); session.add(account); await session.flush()
+                if status == "delivered":
+                    points = subtotal // 10; account.balance_points += points; account.lifetime_points += points
+                    session.add(LoyaltyTransaction(user_id=user.id, order_id=order.id, type="earn", points=points, balance_after=account.balance_points, note="Demo delivered order"))
         await session.commit()
         print(f"Created {order_number} demo orders for {len(users)} users.")
 

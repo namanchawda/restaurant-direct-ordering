@@ -24,6 +24,8 @@ from app.models import (
 )
 from app.seed import seed_data
 
+from conftest import delete_customer_data
+
 PHONE_PREFIX = "7000"
 
 
@@ -62,13 +64,7 @@ async def _register_customer(api_client: httpx.AsyncClient) -> dict[str, str]:
 
 
 async def _delete_customer_data(phone: str) -> None:
-    async with get_session_factory()() as session:
-        user = await session.scalar(select(User).where(User.phone == phone))
-        if user is None:
-            return
-        await session.execute(delete(Order).where(Order.user_id == user.id))
-        await session.delete(user)
-        await session.commit()
+    await delete_customer_data(phone)
 
 
 @pytest_asyncio.fixture(loop_scope="module")

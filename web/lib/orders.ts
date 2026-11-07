@@ -32,6 +32,13 @@ export type Order = {
   payment_method: "upi" | "card";
   payment_status: "pending" | "paid" | "failed" | "refunded";
   total_inr: number;
+  items_subtotal_inr: number;
+  coupon_discount_inr: number;
+  points_discount_inr: number;
+  delivery_fee_inr: number;
+  coupon_code: string | null;
+  redeemed_points: number;
+  earn_points: number;
   gst_included_inr: number;
   placed_at: string;
   promised_at: string;

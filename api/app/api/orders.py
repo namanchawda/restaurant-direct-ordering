@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.api.deps import get_db, require_role
+from app.api.deps import get_db, require_role, get_optional_user
 from app.api.admin import _set_availability
 from app.models import (
     Category,
@@ -22,10 +22,18 @@ from app.models import (
     OutletItemAvailability,
     Rider,
     User,
+    Coupon,
+    CouponRedemption,
+    LoyaltyTransaction,
+    LoyaltyAccount,
 )
 from app.schemas import (
     AvailabilityUpdate,
+    CancelRequest,
     OrderCreate,
+    OrderQuote,
+    CouponEligible,
+    CouponValidate,
     OverrideUpdate,
     PaymentRequest,
     StatusUpdate,
@@ -41,6 +49,8 @@ from app.services.order_payload import (
 )
 from app.services.prep_time import calculate_promised_at, estimate_prep_minutes, fallback_prep_minutes
 from app.services.delivery import derive_stage, delivery_progress, generate_route, interpolate_route, route_distance_km, trip_duration
+from app.services.rewards import coupon_discount, coupon_eligibility_error, delivery_fee, earn_points, get_or_create_account, points_discount, settle_order_rewards, validate_redemption
+from app.services.unpaid_orders import cancel_unpaid_order
 
 router = APIRouter(tags=["orders"])
 logger = logging.getLogger(__name__)
@@ -138,6 +148,58 @@ async def _new_public_id(session: AsyncSession) -> str:
             return candidate
     raise HTTPException(status_code=503, detail="Could not allocate an order number. Please retry.")
 
+async def _calculate_cart(session: AsyncSession, outlet: Outlet, lines) -> tuple[list[OrderItem], int, list[int]]:
+    items: list[OrderItem] = []
+    weights: list[int] = []
+    subtotal = 0
+    current_time = _now_utc()
+    for line in lines:
+        item = await session.scalar(select(MenuItem).options(selectinload(MenuItem.variants), selectinload(MenuItem.addon_links).selectinload(ItemAddon.addon), selectinload(MenuItem.outlet_availability), selectinload(MenuItem.category), selectinload(MenuItem.city_prices)).where(MenuItem.id == line.item_id))
+        if item is None or not item.active: raise HTTPException(status_code=409, detail="One or more menu items are unavailable.")
+        if not any(row.outlet_id == outlet.id and row.available for row in item.outlet_availability): raise HTTPException(status_code=409, detail=f"{item.name} is not available at this outlet right now.")
+        in_window, _ = category_window_status(item.category, current_time)
+        if not in_window: raise HTTPException(status_code=409, detail=f"{item.name} is not available at this outlet right now.")
+        weights.extend([item.category.prep_weight_minutes] * line.quantity)
+        base = next((price.price_inr for price in item.city_prices if price.city.casefold() == outlet.city.casefold()), item.base_price_inr)
+        unit = base; name = item.name
+        if line.variant_id:
+            variant = next((value for value in item.variants if value.id == line.variant_id), None)
+            if variant is None: raise HTTPException(status_code=422, detail="The selected variant does not belong to this item.")
+            unit = variant.price_inr; name = f"{item.name} - {variant.name}"
+        if len(set(line.addon_ids)) != len(line.addon_ids): raise HTTPException(status_code=422, detail="Addon IDs must be unique for each item.")
+        allowed = {link.addon_id: link.addon for link in item.addon_links}
+        if any(addon_id not in allowed for addon_id in line.addon_ids): raise HTTPException(status_code=422, detail="One or more addons are not available for this item.")
+        addons = [{"id": str(addon_id), "name": allowed[addon_id].name, "price_inr": allowed[addon_id].price_inr} for addon_id in line.addon_ids]
+        subtotal += (unit + sum(addon["price_inr"] for addon in addons)) * line.quantity
+        items.append(OrderItem(item_id=item.id, variant_id=line.variant_id, name=name, unit_price_inr=unit, quantity=line.quantity, addons=addons))
+    return items, subtotal, weights
+
+async def _coupon_for(session: AsyncSession, code: str | None, user: User | None, subtotal: int, *, outlet_id: UUID | None = None) -> tuple[Coupon | None, int, str | None]:
+    if not code: return None, 0, None
+    coupon = await session.scalar(select(Coupon).where(Coupon.code == code.strip().upper()))
+    if coupon is None: return None, 0, "Coupon is not active or does not exist."
+    now = _now_utc()
+    total_used = await session.scalar(select(func.count(CouponRedemption.id)).where(CouponRedemption.coupon_id == coupon.id)) if coupon.usage_limit_total is not None else 0
+    user_used = 0
+    prior = 0
+    if user is not None:
+        if coupon.usage_limit_per_user is not None:
+            user_used = await session.scalar(select(func.count(CouponRedemption.id)).where(CouponRedemption.coupon_id == coupon.id, CouponRedemption.user_id == user.id)) or 0
+        if coupon.first_order_only:
+            prior = await session.scalar(select(func.count(Order.id)).where(Order.user_id == user.id, Order.payment_status == "paid")) or 0
+    reason = coupon_eligibility_error(coupon, subtotal, now=now, total_used=int(total_used or 0), user_used=int(user_used), prior_paid_orders=int(prior))
+    if reason is not None: return None, 0, reason
+    return coupon, coupon_discount(coupon, subtotal), None
+
+
+def compute_totals(subtotal: int, coupon_off: int, redeem_points: int) -> tuple[int, int, int, int]:
+    """Shared pricing math for /orders/quote and POST /orders: returns (fee, before_points, points_off, total)."""
+    fee = delivery_fee(subtotal)
+    before_points = max(0, subtotal - coupon_off + fee)
+    points_off = min(points_discount(redeem_points), before_points)
+    total = max(0, before_points - points_off)
+    return fee, before_points, points_off, total
+
 
 @router.post("/orders", status_code=201)
 async def create_order(
@@ -161,69 +223,13 @@ async def create_order(
     if distance > outlet.delivery_radius_km:
         raise HTTPException(status_code=422, detail="Delivery address is outside this outlet's delivery radius.")
 
-    items: list[OrderItem] = []
-    item_weights: list[int] = []
-    total = 0
-    current_time = _now_utc()
-    for line in payload.items:
-        item = await session.scalar(
-            select(MenuItem)
-            .options(
-                selectinload(MenuItem.variants),
-                selectinload(MenuItem.addon_links).selectinload(ItemAddon.addon),
-                selectinload(MenuItem.outlet_availability),
-                selectinload(MenuItem.category),
-                selectinload(MenuItem.city_prices),
-            )
-            .where(MenuItem.id == line.item_id)
-        )
-        if item is None or not item.active:
-            raise HTTPException(status_code=409, detail="One or more menu items are unavailable.")
-        is_available = any(
-            row.outlet_id == outlet.id and row.available for row in item.outlet_availability
-        )
-        category = item.category
-        item_weights.extend([category.prep_weight_minutes] * line.quantity)
-        in_window, _ = category_window_status(category, current_time)
-        if not is_available or not in_window:
-            raise HTTPException(status_code=409, detail=f"{item.name} is not available at this outlet right now.")
-
-        base_price = next(
-            (price.price_inr for price in item.city_prices if price.city.casefold() == outlet.city.casefold()),
-            item.base_price_inr,
-        )
-        unit_price = base_price
-        item_name = item.name
-        if line.variant_id:
-            variant = next((value for value in item.variants if value.id == line.variant_id), None)
-            if variant is None:
-                raise HTTPException(status_code=422, detail="The selected variant does not belong to this item.")
-            unit_price = variant.price_inr
-            item_name = f"{item.name} - {variant.name}"
-        if len(set(line.addon_ids)) != len(line.addon_ids):
-            raise HTTPException(status_code=422, detail="Addon IDs must be unique for each item.")
-        allowed_addons = {link.addon_id: link.addon for link in item.addon_links}
-        if any(addon_id not in allowed_addons for addon_id in line.addon_ids):
-            raise HTTPException(status_code=422, detail="One or more addons are not available for this item.")
-        addon_snapshots = [
-            {
-                "id": str(addon_id),
-                "name": allowed_addons[addon_id].name,
-                "price_inr": allowed_addons[addon_id].price_inr,
-            }
-            for addon_id in line.addon_ids
-        ]
-        total += (unit_price + sum(addon["price_inr"] for addon in addon_snapshots)) * line.quantity
-        items.append(
-            OrderItem(
-                item_id=item.id,
-                variant_id=line.variant_id,
-                name=item_name,
-                unit_price_inr=unit_price,
-                quantity=line.quantity,
-                addons=addon_snapshots,
-            )
-        )
+    items, subtotal, item_weights = await _calculate_cart(session, outlet, payload.items)
+    coupon, coupon_off, coupon_reason = await _coupon_for(session, payload.coupon_code, user, subtotal)
+    if payload.coupon_code and coupon is None:
+        raise HTTPException(status_code=422, detail=coupon_reason or "Coupon cannot be applied.")
+    fee, before_points, points_off, total = compute_totals(subtotal, coupon_off, payload.redeem_points)
+    valid_points, point_reason = validate_redemption(payload.redeem_points, (await get_or_create_account(session, user.id, lock=True)).balance_points, before_points)
+    if not valid_points: raise HTTPException(status_code=422, detail=point_reason or "Points cannot be redeemed.")
 
     active_count = await session.scalar(
         select(func.count(Order.id)).where(
@@ -278,6 +284,12 @@ async def create_order(
             payment_method=payload.payment_method,
             payment_status="pending",
             total_inr=total,
+            items_subtotal_inr=subtotal,
+            coupon_discount_inr=coupon_off,
+            points_discount_inr=points_off,
+            delivery_fee_inr=fee,
+            coupon_code=coupon.code if coupon else None,
+            redeemed_points=payload.redeem_points,
             delivery_address=payload.delivery_address.address,
             delivery_lat=payload.delivery_address.lat,
             delivery_lng=payload.delivery_address.lng,
@@ -300,7 +312,22 @@ async def create_order(
         )
         order.status_events.append(OrderStatusEvent(status="placed", at=placed_at))
         session.add(order)
+        # The point debit must commit with the order itself: the SELECT FOR
+        # UPDATE taken here holds the row lock until this single commit, so a
+        # concurrent checkout cannot redeem the same points twice. The balance
+        # is re-validated with a fresh locked read on every attempt, because
+        # the public-id retry rollback releases the lock.
         try:
+            await session.flush()
+            if payload.redeem_points:
+                account = await get_or_create_account(session, user.id, lock=True)
+                valid_points, point_reason = validate_redemption(payload.redeem_points, account.balance_points, before_points)
+                if not valid_points:
+                    raise HTTPException(status_code=422, detail=point_reason or "Points cannot be redeemed.")
+                account.balance_points -= payload.redeem_points
+                session.add(LoyaltyTransaction(user_id=user.id, order_id=order.id, type="redeem", points=-payload.redeem_points, balance_after=account.balance_points, note="Redeemed at checkout"))
+            if coupon:
+                session.add(CouponRedemption(coupon_id=coupon.id, user_id=user.id, order_id=order.id))
             await session.commit()
             break
         except IntegrityError as error:
@@ -316,6 +343,56 @@ async def create_order(
         raise HTTPException(status_code=503, detail="Could not allocate an order number. Please retry.")
     order = await _get_order(session, order.public_id)
     return serialize_order(order)
+
+async def _quote(session: AsyncSession, outlet_id: UUID, lines, user: User | None, redeem_points: int = 0, coupon_code: str | None = None) -> dict[str, object]:
+    outlet = await session.get(Outlet, outlet_id)
+    if outlet is None: raise HTTPException(status_code=404, detail="Outlet not found.")
+    _, subtotal, _ = await _calculate_cart(session, outlet, lines)
+    coupon, coupon_off, coupon_reason = await _coupon_for(session, coupon_code, user, subtotal)
+    fee, before_points, points_off, total = compute_totals(subtotal, coupon_off, redeem_points)
+    balance = 0
+    if user: balance = (await get_or_create_account(session, user.id)).balance_points
+    valid, reason = validate_redemption(redeem_points, balance, before_points)
+    if not valid: raise HTTPException(status_code=422, detail=reason or "Points cannot be redeemed.")
+    return {"items_subtotal_inr": subtotal, "coupon_discount_inr": coupon_off, "points_discount_inr": points_off, "delivery_fee_inr": fee, "total_inr": total, "coupon_code": coupon.code if coupon else None, "coupon_reason": coupon_reason, "earn_points": earn_points(max(0, subtotal - coupon_off)), "price_note": "Item prices incl. 5% GST. Delivery fee is separate and has no additional GST in this summary."}
+
+@router.post("/orders/quote")
+async def order_quote(payload: OrderQuote, user: User | None = Depends(get_optional_user), session: AsyncSession = Depends(get_db)) -> dict[str, object]:
+    return await _quote(session, payload.outlet_id, payload.items, user, payload.redeem_points, payload.coupon_code)
+
+@router.post("/coupons/validate")
+async def validate_coupon(payload: CouponValidate, user: User = Depends(require_role("customer")), session: AsyncSession = Depends(get_db)) -> dict[str, object]:
+    quote = await _quote(session, payload.outlet_id, payload.items, user, 0, payload.code)
+    if not quote["coupon_code"]: return {"valid": False, "code": payload.code.upper(), "discount_inr": 0, "reason": quote["coupon_reason"] or "Coupon cannot be applied."}
+    return {"valid": True, "code": quote["coupon_code"], "discount_inr": quote["coupon_discount_inr"], "reason": None}
+
+def _coupon_description(coupon: Coupon) -> str:
+    if coupon.type == "percent":
+        text = f"{coupon.value}% off"
+        if coupon.max_discount_inr is not None: text += f" up to Rs {coupon.max_discount_inr}"
+    else:
+        text = f"Rs {coupon.value} off"
+    return text
+
+@router.post("/coupons/eligible")
+async def eligible_coupons(payload: CouponEligible, user: User = Depends(require_role("customer")), session: AsyncSession = Depends(get_db)) -> list[dict[str, object]]:
+    """Every active demo coupon for this cart; reuse the /coupons/validate rules so ineligible rows carry their reason."""
+    outlet = await session.get(Outlet, payload.outlet_id)
+    if outlet is None: raise HTTPException(status_code=404, detail="Outlet not found.")
+    _, subtotal, _ = await _calculate_cart(session, outlet, payload.items)
+    coupons = (await session.scalars(select(Coupon).where(Coupon.is_demo.is_(True), Coupon.active.is_(True)).order_by(Coupon.code))).all()
+    offers: list[dict[str, object]] = []
+    for coupon in coupons:
+        _, discount, reason = await _coupon_for(session, coupon.code, user, subtotal)
+        offers.append({"code": coupon.code, "description": _coupon_description(coupon), "eligible": reason is None, "discount_inr": discount, "reason": reason})
+    return offers
+
+@router.get("/loyalty/me")
+async def loyalty_me(user: User = Depends(require_role("customer")), session: AsyncSession = Depends(get_db)) -> dict[str, object]:
+    account = await get_or_create_account(session, user.id)
+    transactions = (await session.scalars(select(LoyaltyTransaction).where(LoyaltyTransaction.user_id == user.id).order_by(LoyaltyTransaction.created_at.desc()).limit(20))).all()
+    from app.services.rewards import tier_for
+    return {"balance_points": account.balance_points, "value_inr": points_discount(account.balance_points), "tier": tier_for(account.lifetime_points), "lifetime_points": account.lifetime_points, "next_tier_points": 1500 if account.lifetime_points < 1500 else None, "transactions": [{"type": t.type, "points": t.points, "balance_after": t.balance_after, "note": t.note, "created_at": t.created_at} for t in transactions]}
 
 
 @router.post("/orders/{public_id}/pay")
@@ -357,6 +434,25 @@ async def pay_order(
         "public_id": order.public_id,
         "payment_status": order.payment_status,
     }
+
+
+@router.post("/orders/{public_id}/cancel")
+async def cancel_order(
+    public_id: str,
+    payload: CancelRequest,
+    user: User = Depends(require_role("customer")),
+    session: AsyncSession = Depends(get_db),
+) -> dict[str, object]:
+    """Customers may cancel their own order while it is unpaid; the kitchen keeps paid order handling."""
+    order = await _get_order(session, public_id)
+    if order.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Order not found.")
+    if order.payment_status == "paid":
+        raise HTTPException(status_code=409, detail="Paid orders can only be cancelled by the kitchen.")
+    if "cancelled" not in TRANSITIONS.get(order.status, set()):
+        raise HTTPException(status_code=409, detail=f"Cannot cancel an order from {order.status}.")
+    order = await cancel_unpaid_order(session, order, reason=payload.reason)
+    return serialize_order(order)
 
 
 @router.get("/orders/mine")
@@ -477,6 +573,11 @@ async def update_order_status(
         order.delivery_eta_at = now + trip_duration(route)
     if payload.status == "cancelled":
         order.cancellation_reason = payload.reason
+        if order.payment_status != "paid" and order.coupon_redemption is not None:
+            await session.delete(order.coupon_redemption)
+        await settle_order_rewards(session, order)
+    if payload.status == "delivered":
+        await settle_order_rewards(session, order)
     order.status_events.append(OrderStatusEvent(status=payload.status, at=now))
     await session.commit()
     order = await _get_order(session, public_id)

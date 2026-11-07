@@ -13,6 +13,7 @@ from app.services.events import publish_order_event
 from app.services.order_payload import LATE_STATUSES, order_load_options
 from app.services.prep_time import calculate_promised_at
 from app.services.delivery import can_auto_deliver, delivery_progress, generate_route, trip_duration
+from app.services.unpaid_orders import cancel_expired_unpaid_orders
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,10 @@ async def run_escalation_once(
 ) -> list[Order]:
     settings = get_settings()
     current_time = now or datetime.now(UTC)
+    unpaid_cancelled = await cancel_expired_unpaid_orders(
+        session,
+        now=current_time,
+    )
     delivered = await session.scalars(
         select(Order).options(*order_load_options()).where(Order.status == "handed_to_rider", Order.picked_up_at.is_not(None), Order.delivered_at.is_(None))
     )
@@ -68,7 +73,7 @@ async def run_escalation_once(
         )
     ).all()
     if not orders:
-        return []
+        return unpaid_cancelled
 
     escalated: list[Order] = []
     for order in orders:
@@ -97,7 +102,7 @@ async def run_escalation_once(
 
     for order in escalated:
         await publish_order_event(order, event_type="order.escalated")
-    return escalated
+    return [*unpaid_cancelled, *escalated]
 
 
 async def escalation_loop() -> None:

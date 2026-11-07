@@ -10,6 +10,9 @@ type DateRange = "today" | "7-days" | "30-days";
 type DashboardMetrics = {
   orders_count: number;
   revenue_inr: number;
+  coupon_discount_inr: number;
+  points_discount_inr: number;
+  discounts_given_inr: number;
   cancellations_count: number;
   avg_actual_minutes: number | null;
   on_time_rate: number | null;
@@ -27,6 +30,26 @@ type DashboardResponse = {
   orders_by_hour: { hour: number; orders_count: number }[];
   cancellations_by_reason: { reason: string | null; count: number }[];
 };
+
+function withDiscountTotals<T extends Omit<DashboardMetrics, "discounts_given_inr">>(
+  metrics: T,
+): T & Pick<DashboardMetrics, "discounts_given_inr"> {
+  return {
+    ...metrics,
+    discounts_given_inr: metrics.coupon_discount_inr + metrics.points_discount_inr,
+  };
+}
+
+function normalizeDashboardResponse(response: Omit<DashboardResponse, "total" | "outlets"> & {
+  total: Omit<DashboardMetrics, "discounts_given_inr">;
+  outlets: Array<Omit<OutletMetrics, "discounts_given_inr">>;
+}): DashboardResponse {
+  return {
+    ...response,
+    total: withDiscountTotals(response.total),
+    outlets: response.outlets.map((outlet) => withDiscountTotals(outlet)),
+  };
+}
 
 const INR = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -204,9 +227,9 @@ export function OperationsDashboard({ scope }: { scope: "admin" | "kitchen" }) {
     if (!today) return;
     let active = true;
     void api<DashboardResponse>(`${path}?${queryString}`)
-      .then((result) => {
+      .then((result: Parameters<typeof normalizeDashboardResponse>[0]) => {
         if (active) {
-          setResponse({ key: queryKey, data: result });
+          setResponse({ key: queryKey, data: normalizeDashboardResponse(result) });
           setFailure(null);
         }
       })
@@ -297,6 +320,28 @@ export function OperationsDashboard({ scope }: { scope: "admin" | "kitchen" }) {
             <Metric label="Repeat customers" value={percentage(data.total.repeat_customer_pct)} />
           </section>
 
+          <section className={styles.secondaryMetrics} aria-label="Discount summary">
+            <div className={styles.secondaryMetric}>
+              <span>Coupon discounts</span>
+              <strong>{INR.format(data.total.coupon_discount_inr)}</strong>
+            </div>
+            <div className={styles.secondaryMetric}>
+              <span>Points redeemed (Rs)</span>
+              <strong>{INR.format(data.total.points_discount_inr)}</strong>
+            </div>
+            <div className={styles.secondaryMetric}>
+              <span>Discounts as % of revenue</span>
+              <strong>
+                {percentage(
+                  data.total.revenue_inr > 0
+                    ? (data.total.discounts_given_inr / data.total.revenue_inr) * 100
+                    : 0,
+                )}
+              </strong>
+              <small>Discounts given: {INR.format(data.total.discounts_given_inr)}</small>
+            </div>
+          </section>
+
           {data.total.orders_count === 0 && (
             <p className={styles.emptyNotice}>No paid orders for this period.</p>
           )}
@@ -316,6 +361,8 @@ export function OperationsDashboard({ scope }: { scope: "admin" | "kitchen" }) {
                       <th scope="col">Outlet</th>
                       <th scope="col">Orders</th>
                       <th scope="col">Revenue</th>
+                      <th scope="col" className={styles.discountColumn}>Coupon discounts</th>
+                      <th scope="col" className={styles.discountColumn}>Points redeemed</th>
                       <th scope="col">Avg prep</th>
                       <th scope="col">On time</th>
                       <th scope="col">Repeat</th>
@@ -327,6 +374,12 @@ export function OperationsDashboard({ scope }: { scope: "admin" | "kitchen" }) {
                         <th scope="row" data-label="Outlet">{row.outlet}</th>
                         <td data-label="Orders">{COUNT.format(row.orders_count)}</td>
                         <td data-label="Revenue">{INR.format(row.revenue_inr)}</td>
+                        <td data-label="Coupon discounts" className={styles.discountColumn}>
+                          {INR.format(row.coupon_discount_inr)}
+                        </td>
+                        <td data-label="Points redeemed" className={styles.discountColumn}>
+                          {INR.format(row.points_discount_inr)}
+                        </td>
                         <td data-label="Avg prep">{averagePrep(row.avg_actual_minutes)}</td>
                         <td data-label="On time">{percentage(row.on_time_rate)}</td>
                         <td data-label="Repeat">{percentage(row.repeat_customer_pct)}</td>

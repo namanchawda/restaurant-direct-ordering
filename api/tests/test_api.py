@@ -5,14 +5,16 @@ import secrets
 import httpx
 import pytest
 import pytest_asyncio
-from sqlalchemy import delete, select
+from sqlalchemy import select
 
 from app.main import app
 from app.db.session import get_session_factory
-from app.models import Addon, CityPrice, ItemAddon, ItemVariant, MenuItem, Order, Outlet, User
+from app.models import Addon, CityPrice, ItemAddon, ItemVariant, MenuItem, Order, Outlet
 from app.seed import seed_data
 from app.services import events
 from app.services.escalation import run_escalation_once
+from app.services.unpaid_orders import cancel_expired_unpaid_orders
+from conftest import delete_customer_data
 
 
 @pytest_asyncio.fixture(scope="module", loop_scope="module")
@@ -44,12 +46,7 @@ async def customer(api_client: httpx.AsyncClient) -> AsyncIterator[dict[str, str
     try:
         yield value
     finally:
-        async with get_session_factory()() as session:
-            user = await session.scalar(select(User).where(User.phone == phone))
-            if user is not None:
-                await session.execute(delete(Order).where(Order.user_id == user.id))
-                await session.delete(user)
-                await session.commit()
+        await delete_customer_data(phone)
 
 
 async def _login(client: httpx.AsyncClient, phone: str, password: str) -> str:
@@ -475,3 +472,32 @@ async def test_live_stream_tokens_kitchen_items_and_escalation(
     stats = await api_client.get("/kitchen/stream/stats", headers=_auth(kitchen_token))
     assert stats.status_code == 200
     assert "subscribers" in stats.json()
+
+
+@pytest.mark.asyncio(loop_scope="module")
+async def test_expired_unpaid_order_is_cancelled_by_background_pass(
+    api_client: httpx.AsyncClient, customer: dict[str, str]
+) -> None:
+    created = await _create_order(api_client, customer)
+    assert created.status_code == 201, created.text
+    public_id = created.json()["public_id"]
+    now = datetime.now(UTC)
+
+    async with get_session_factory()() as session:
+        order = await session.scalar(select(Order).where(Order.public_id == public_id))
+        assert order is not None
+        order.placed_at = now - timedelta(minutes=16)
+        await session.commit()
+        cancelled = await cancel_expired_unpaid_orders(
+            session,
+            now=now,
+            timeout_minutes=15,
+        )
+
+    assert public_id in {order.public_id for order in cancelled}
+    detail = await api_client.get(
+        f"/orders/{public_id}", headers=_auth(customer["token"])
+    )
+    assert detail.status_code == 200, detail.text
+    assert detail.json()["status"] == "cancelled"
+    assert detail.json()["cancellation_reason"] == "Payment not completed in time"

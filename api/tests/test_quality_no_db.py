@@ -19,6 +19,11 @@ def _order_for(total_inr: int, **overrides) -> Order:
     placed = datetime.now(UTC) - timedelta(minutes=5)
     values = {
         "total_inr": total_inr,
+        "items_subtotal_inr": total_inr,
+        "coupon_discount_inr": 0,
+        "points_discount_inr": 0,
+        "delivery_fee_inr": 0,
+        "redeemed_points": 0,
         "status": "cancelled",
         "payment_method": "upi",
         "payment_status": "paid",
@@ -39,6 +44,28 @@ def test_gst_amount_is_total_times_five_over_105(total_inr: int) -> None:
     payload = serialize_order(order)
     assert payload["gst_included_inr"] == round(total_inr * 5 / 105)
     assert payload["price_note"] == "incl. 5% GST"
+
+
+def test_legacy_order_without_breakdown_still_serializes() -> None:
+    order = _order_for(
+        1030,
+        items_subtotal_inr=None,
+        coupon_discount_inr=None,
+        points_discount_inr=None,
+        delivery_fee_inr=None,
+        redeemed_points=None,
+        coupon_code=None,
+    )
+    payload = serialize_order(order)
+    assert payload["items_subtotal_inr"] == 1030
+    assert payload["total_inr"] == 1030
+    assert payload["coupon_discount_inr"] == 0
+    assert payload["points_discount_inr"] == 0
+    assert payload["delivery_fee_inr"] == 0
+    assert payload["redeemed_points"] == 0
+    assert payload["earn_points"] == 103
+    assert payload["gst_included_inr"] == round(1030 * 5 / 105)
+    assert json.dumps(payload, default=str) is not None
 
 
 def test_kitchen_payload_never_includes_phone_number() -> None:

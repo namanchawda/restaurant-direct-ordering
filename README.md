@@ -10,7 +10,7 @@ The client problem is 25–30% delivery-app commission, fragmented outlet menus,
 - Kitchen board with SSE updates, polling fallback, timers, prep stages, late/escalated states, promise overrides, and item availability.
 - Operations dashboard for orders, prep time, cancellations, repeat customers, and outlet comparison.
 
-Out of scope for this slice: delivery-app integration, an own rider app, replacing billing or inventory, real payments/OTP/messages, and production-scale automation. These Must haves are not built: coupons, loyalty points, party order form, real WhatsApp/SMS, and delivery app integration.
+Out of scope for this slice: delivery-app integration, an own rider app, replacing billing or inventory, real payments/OTP/messages, and production-scale automation. These Must haves are not built: the party order form, real WhatsApp/SMS, and delivery app integration.
 
 ## Architecture
 
@@ -75,9 +75,33 @@ cd ..\api
 
 - Prices and availability are revalidated and calculated server-side.
 - Customer prices are GST-inclusive and display `incl. 5% GST`.
+- Loyalty points are earned at 1 point per Rs 10 on delivery, redeemed in steps of 100, and capped at 20% of the order payable.
+- Coupons are validated server-side and may have minimum-order, first-order, usage-limit, validity-window, percentage, flat-discount, and maximum-discount rules.
+- Delivery costs Rs 30 and is free for orders over Rs 499.
+- Unpaid orders are automatically cancelled after 15 minutes by default when they are still in `placed` status; set `UNPAID_ORDER_TIMEOUT_MINUTES` to change the timeout.
 - Promised time is the higher of the AI estimate and outlet minimum; a manager override wins.
 - Orders escalate 10 minutes after the promise and notify the kitchen/customer through the app.
 - Suggestions never add anything to the cart.
+
+## Loyalty, coupons, and order-payment endpoints
+
+Customer endpoints:
+
+- `GET /loyalty/me` returns the balance, value, tier, and recent loyalty transactions.
+- `POST /orders/quote` calculates the current subtotal, coupon discount, points discount, Rs 30 delivery fee or free-delivery result, payable total, and earned points.
+- `POST /coupons/validate` validates one coupon for a cart.
+- `POST /coupons/eligible` lists the active demo coupons and eligibility reasons for a cart.
+- `POST /orders` accepts `coupon_code` and `redeem_points` and revalidates both before creating the order.
+- `POST /orders/{public_id}/pay` completes a mocked UPI or card payment.
+- `POST /orders/{public_id}/cancel` lets the customer cancel their own unpaid order.
+
+Admin coupon endpoints:
+
+- `GET /admin/coupons` lists coupons.
+- `POST /admin/coupons` creates a coupon.
+- `PATCH /admin/coupons/{coupon_id}` updates a coupon.
+
+Seeded demo coupons (development/demo data only): `WELCOME100` (Rs 100 off, first order, minimum Rs 399), `BIRYANI10` (10% off up to Rs 120, minimum Rs 299), `PARTY15` (15% off up to Rs 500, minimum Rs 1,500), and `FREESHIP` (Rs 30 off, minimum Rs 249).
 
 ## Known limitations
 
