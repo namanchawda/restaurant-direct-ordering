@@ -5,9 +5,10 @@ import Link from "next/link";
 import { Button, Dialog, Skeleton, useToast } from "@/components/ui";
 import { AccountMenu } from "@/components/customer/AccountMenu";
 import { CartSummary } from "@/components/customer/CartSummary";
+import { FavouriteCard } from "@/components/customer/FavouriteCard";
 import { MenuScreen } from "@/components/customer/MenuScreen";
 import { useCart } from "@/components/customer/CartProvider";
-import { api, describeApiError } from "@/lib/api";
+import { api, describeApiError, listFavourites, removeFavourite } from "@/lib/api";
 import {
   HYDERABAD_AREAS,
   LOCATION_STORAGE_KEY,
@@ -15,6 +16,7 @@ import {
 } from "@/lib/customer";
 import type { DeliveryArea, OutletResult } from "@/lib/customer";
 import { selectDefaultOutlet } from "@/lib/outlet-selection";
+import { useAuth } from "@/lib/auth";
 
 function savedArea(): DeliveryArea {
   if (typeof window !== "undefined") {
@@ -43,6 +45,8 @@ export function BrowseHome() {
   const [cartOpen, setCartOpen] = useState(false);
   const [pendingOutlet, setPendingOutlet] = useState<OutletResult | null>(null);
   const [locating, setLocating] = useState(false);
+  const { user, ready: authReady } = useAuth();
+  const [favourites, setFavourites] = useState<{ item_id: string; name: string; photo_url: string | null; price_inr: number; is_veg: boolean }[]>([]);
 
   useEffect(() => { cartRef.current = cart; }, [cart]);
 
@@ -78,6 +82,17 @@ export function BrowseHome() {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [area, areaReady]);
+
+  useEffect(() => {
+    if (!authReady || !(user?.role === "customer")) return;
+    let active = true;
+    void listFavourites()
+      .then((result) => {
+        if (active) setFavourites(result);
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [authReady, user]);
 
   function chooseArea(nextArea: DeliveryArea) {
     setArea(nextArea);
@@ -134,6 +149,21 @@ export function BrowseHome() {
           <div><p className="eyebrow">Gather well</p><h1 id="party-home-heading">Planning a party?</h1><p>Order for 10 or more and let a catering manager confirm the details.</p></div>
           <Link className="button button-primary" href="/party">Plan a party</Link>
         </section>
+        {favourites.length > 0 && (
+          <section className="home-favourites-section" aria-labelledby="home-favourites-heading">
+            <div><p className="customer-eyebrow">Your favourites</p><h2 id="home-favourites-heading">Your favourites</h2></div>
+            <div className="home-favourite-scroll" role="list" aria-label="Your favourite dishes">
+              {favourites.map((favourite) => (
+                <FavouriteCard key={favourite.item_id} favourite={favourite} onRemove={(itemId) => {
+                  setFavourites((current) => current.filter((item) => item.item_id !== itemId));
+                  void removeFavourite(itemId).catch(() => {
+                    void listFavourites().then((updated) => setFavourites(updated)).catch(() => undefined);
+                  });
+                }} />
+              ))}
+            </div>
+          </section>
+        )}
         <MenuScreen outletId={outlet.id} browseFirst deliveryArea={area} onChangeLocation={() => setLocationOpen(true)} onOpenCart={() => setCartOpen(true)} />
       </>}
 

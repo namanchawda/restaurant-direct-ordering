@@ -11,12 +11,13 @@ import {
   EmptyState,
   Input,
   Price,
+  Select,
   Textarea,
   useToast,
 } from "@/components/ui";
 import { AccountMenu } from "@/components/customer/AccountMenu";
 import { useCart } from "@/components/customer/CartProvider";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, CustomerAddress, createAddress, describeApiError, listAddresses } from "@/lib/api";
 import {
   cartItemCount,
   cartLineTotal,
@@ -130,6 +131,10 @@ export function CheckoutScreen() {
   const initialisedOutletRef = useRef("");
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [address, setAddress] = useState("");
+  const [savedAddresses, setSavedAddresses] = useState<CustomerAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [saveNewAddress, setSaveNewAddress] = useState(false);
+  const [newAddressLabel, setNewAddressLabel] = useState<string>("home");
   const [locating, setLocating] = useState(false);
 
   const [authStage, setAuthStage] = useState<AuthStage>("phone");
@@ -278,6 +283,26 @@ export function CheckoutScreen() {
       .catch(() => { if (active) setCouponOffers([]); });
     return () => { active = false; };
   }, [outlet, isSignedInCustomer, cart.lines]);
+
+  useEffect(() => {
+    if (!(user?.role === "customer") || !outlet) return;
+    let active = true;
+    void listAddresses()
+      .then((result) => {
+        if (!active) return;
+        setSavedAddresses(result);
+        const defaultAddress = result.find((saved) => saved.is_default);
+        if (defaultAddress) {
+          setSelectedAddressId(defaultAddress.id);
+          setCoords({ lat: defaultAddress.lat, lng: defaultAddress.lng });
+          setAddress(defaultAddress.address);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [user, outlet]);
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -524,6 +549,20 @@ export function CheckoutScreen() {
       });
 
       if (result.payment_status === "paid") {
+        if (saveNewAddress && user?.role === "customer" && coords) {
+          try {
+            await createAddress({
+              label: newAddressLabel as CustomerAddress["label"],
+              address: address.trim(),
+              lat: coords.lat,
+              lng: coords.lng,
+              is_default: savedAddresses.length === 0,
+            });
+            toast("Address saved for future orders.", "success");
+          } catch (saveError) {
+            toast(describeApiError(saveError, "Order placed, but we couldn't save the address."), "error");
+          }
+        }
         saveAddress({ address: address.trim(), lat: coords.lat, lng: coords.lng });
         clearSavedUnpaidOrder();
         clearCart();
@@ -902,6 +941,46 @@ export function CheckoutScreen() {
                       </Button>
                     </div>
 
+                    {savedAddresses.length > 0 && (
+                      <Card className="checkout-card checkout-saved-addresses-card">
+                        <div className="checkout-card-heading-row">
+                          <div>
+                            <p className="checkout-step-label">Delivery</p>
+                            <h2>Choose a saved address</h2>
+                          </div>
+                        </div>
+                        <div className="checkout-saved-addresses" role="radiogroup" aria-label="Saved delivery addresses">
+                          {savedAddresses.map((saved) => {
+                            const selected = selectedAddressId === saved.id;
+                            return (
+                              <button
+                                key={saved.id}
+                                type="button"
+                                role="radio"
+                                aria-checked={selected}
+                                className={`checkout-saved-address${selected ? " checkout-saved-address-selected" : ""}`}
+                                onClick={() => {
+                                  setSelectedAddressId(saved.id);
+                                  setCoords({ lat: saved.lat, lng: saved.lng });
+                                  setAddress(saved.address);
+                                }}
+                              >
+                                <input type="radio" name="saved-address" defaultChecked={selected} readOnly />
+                                <div>
+                                  <div className="checkout-saved-address-label-row">
+                                    <Badge tone="neutral">{saved.label[0].toUpperCase() + saved.label.slice(1)}</Badge>
+                                    {saved.is_default && <Badge tone="success">Default</Badge>}
+                                  </div>
+                                  <p className="checkout-saved-address-text">{saved.address}</p>
+                                  <p className="checkout-saved-address-coords">{saved.lat.toFixed(4)}, {saved.lng.toFixed(4)}</p>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </Card>
+                    )}
+
                     <label className="field checkout-address-field">
                       <span>Delivery address</span>
                       <Textarea
@@ -924,6 +1003,39 @@ export function CheckoutScreen() {
                     <p className="checkout-hint">
                       We share this address only with the kitchen and the delivery partner.
                     </p>
+
+                    <p className="checkout-hint">
+                      We share this address only with the kitchen and the delivery partner.
+                    </p>
+
+                    {user?.role === "customer" && (
+                      <div className="checkout-save-address">
+                        <label className="consent-row">
+                          <input
+                            type="checkbox"
+                            checked={saveNewAddress}
+                            onChange={(event) => setSaveNewAddress(event.target.checked)}
+                          />
+                          <span>Save this address for future orders</span>
+                        </label>
+                        {saveNewAddress && (
+                          <label className="field">
+                            <span>Address label</span>
+                            <Select
+                              id="checkout-address-label"
+                              value={newAddressLabel}
+                              onChange={(event) =>
+                                setNewAddressLabel(event.target.value)
+                              }
+                            >
+                              <option value="home">Home</option>
+                              <option value="work">Work</option>
+                              <option value="other">Other</option>
+                            </Select>
+                          </label>
+                        )}
+                      </div>
+                    )}
 
                     {outsideRadius && (
                       <div className="checkout-inline-error" role="alert">

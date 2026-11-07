@@ -238,6 +238,8 @@ class User(Base):
         back_populates="user", foreign_keys="CouponRedemption.user_id"
     )
     party_orders: Mapped[list["PartyOrder"]] = relationship(back_populates="user", foreign_keys="PartyOrder.user_id")
+    addresses: Mapped[list["CustomerAddress"]] = relationship(back_populates="user", cascade="all, delete-orphan", order_by="CustomerAddress.created_at.desc()")
+    favourites: Mapped[list["CustomerFavorite"]] = relationship(back_populates="user", cascade="all, delete-orphan", order_by="CustomerFavorite.created_at.desc()")
 
 
 class PartyOrder(TimestampMixin, Base):
@@ -287,6 +289,43 @@ class PartyOrder(TimestampMixin, Base):
     status_events: Mapped[list["PartyStatusEvent"]] = relationship(
         back_populates="party_order", cascade="all, delete-orphan", order_by="PartyStatusEvent.at"
     )
+
+
+class CustomerAddress(TimestampMixin, Base):
+    __tablename__ = "customer_addresses"
+    __table_args__ = (
+        CheckConstraint("label IN ('home', 'work', 'other')", name="ck_customer_addresses_label"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    label: Mapped[str] = mapped_column(String(20), nullable=False)
+    address: Mapped[str] = mapped_column(Text, nullable=False)
+    lat: Mapped[float] = mapped_column(nullable=False)
+    lng: Mapped[float] = mapped_column(nullable=False)
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"), nullable=False)
+
+    user: Mapped["User"] = relationship(back_populates="addresses")
+
+
+class CustomerFavorite(TimestampMixin, Base):
+    __tablename__ = "customer_favourites"
+    __table_args__ = (
+        UniqueConstraint("user_id", "item_id", name="uq_customer_favourites_user_item"),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    item_id: Mapped[UUID] = mapped_column(
+        ForeignKey("menu_items.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+
+    user: Mapped["User"] = relationship(back_populates="favourites")
+    item: Mapped["MenuItem"] = relationship()
 
 
 class PartyStatusEvent(Base):

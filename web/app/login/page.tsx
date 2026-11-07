@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
 
 function LoginForm() {
-  const { login, user, ready } = useAuth();
+  const { login, logout, user, ready } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [phone, setPhone] = useState("");
@@ -16,6 +16,8 @@ function LoginForm() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const roleMismatch = searchParams.get("message")?.startsWith("role-") ?? false;
+  const currentRole = user?.role;
+  const roleLabel = currentRole === "customer" ? "a customer" : currentRole === "kitchen" ? "kitchen staff" : currentRole === "admin" ? "an admin" : "a catering manager";
   const notice = useMemo(() => {
     switch (searchParams.get("message")) {
       case "role-admin-required":
@@ -39,6 +41,12 @@ function LoginForm() {
     if (user?.role === "catering") router.replace("/catering");
     if (user?.role === "kitchen") router.replace("/kitchen");
   }, [roleMismatch, router, user]);
+
+  function switchAccount() {
+    logout();
+    setError("");
+    router.replace("/login");
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -79,6 +87,16 @@ function LoginForm() {
           <p>Sign in to manage your menu or kitchen.</p>
         </div>
         {notice && <p className="notice" role="status">{notice}</p>}
+        {roleMismatch && currentRole && (
+          <section className="login-switch" aria-label="Switch account">
+            <p className="notice" role="status">
+              You are signed in as {roleLabel}. Signing in will replace that session.
+            </p>
+            <Button type="button" variant="secondary" onClick={switchAccount}>
+              Sign out and switch account
+            </Button>
+          </section>
+        )}
         <form className="login-form" onSubmit={submit}>
           <label className="field">
             <span>Phone number</span>

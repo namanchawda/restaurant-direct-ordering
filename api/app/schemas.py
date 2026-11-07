@@ -150,6 +150,61 @@ class PartyQuoteRequest(APIModel):
     items: Annotated[list[PartyOrderItemInput], Field(min_length=1)]
 
 
+# ---- Customer profile, saved addresses and favourites ----
+
+
+AddressLabel = Literal["home", "work", "other"]
+
+
+class CustomerAddressCreate(APIModel):
+    label: AddressLabel
+    address: Annotated[str, Field(min_length=5, max_length=500)]
+    lat: Annotated[float, Field(ge=-90, le=90)]
+    lng: Annotated[float, Field(ge=-180, le=180)]
+    is_default: bool = False
+
+
+class CustomerAddressUpdate(APIModel):
+    label: AddressLabel | None = None
+    address: Annotated[str | None, Field(default=None, min_length=5, max_length=500)] = None
+    lat: Annotated[float | None, Field(default=None, ge=-90, le=90)] = None
+    lng: Annotated[float | None, Field(default=None, ge=-180, le=180)] = None
+    is_default: bool | None = None
+
+
+class CustomerAddressResponse(APIModel):
+    id: UUID
+    user_id: UUID
+    label: AddressLabel
+    address: str
+    lat: float
+    lng: float
+    is_default: bool
+    created_at: datetime
+
+
+class CustomerProfileUpdate(APIModel):
+    name: Annotated[str | None, Field(default=None, min_length=1, max_length=160)] = None
+    marketing_opt_in: bool | None = None
+
+
+class CustomerProfileResponse(APIModel):
+    id: UUID
+    name: str
+    phone: str
+    marketing_opt_in: bool
+    created_at: datetime
+
+
+class CustomerFavoriteItem(APIModel):
+    item_id: UUID
+    name: str
+    photo_url: str | None = None
+    price_inr: int
+    is_veg: bool
+    created_at: datetime
+
+
 class PartyConfirmRequest(APIModel):
     manager_note: Annotated[str | None, Field(default=None, max_length=2000)] = None
     adjusted_total_inr: Annotated[int | None, Field(default=None, ge=0)] = None

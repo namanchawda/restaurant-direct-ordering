@@ -257,6 +257,9 @@ button { color: inherit; }
 .login-footnote { margin: 23px 0 0; border-top: 1px solid var(--line); padding-top: 12px; color: var(--muted); font-size: 14px; text-align: center; }
 .notice { margin: 22px 0 -7px; border-left: 3px solid var(--brand); border-radius: 0 6px 6px 0; background: #f8f2f0; padding: 11px 13px; color: #4b302b; font-size: 14px; }
 .form-error { margin: 0; color: #942d27; font-size: 14px; }
+.login-switch { margin: 14px 0 6px; border: 1px solid var(--line); border-radius: 10px; background: #fbf9f8; padding: 12px 14px; }
+.login-switch .notice { margin: 0 0 10px; border-left: 0; border-radius: 6px; background: transparent; padding: 0; color: #39322e; }
+.login-switch .button { width: 100%; min-height: 44px; }
 
 /* Admin shell */
 .admin-frame { min-height: 100vh; }
@@ -1714,6 +1717,94 @@ button { color: inherit; }
 .catering-reason-choice:hover { background: #f4f2f0; }
 .catering-reason-choice input { width: 18px; height: 18px; accent-color: var(--brand); }
 .catering-confirm-dialog .dialog-actions, .catering-reject-dialog .dialog-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 20px; }
+
+/* Customer profile */
+.profile-page { min-height: 100vh; padding: 26px 20px 90px; color: var(--ink); }
+.profile-page .simple-page-header { margin-bottom: 6px; }
+.profile-heading { margin: 10px 0 18px 0; font-size: 30px; letter-spacing: -.04em; line-height: 1.1; }
+.profile-section { margin: 0 0 26px; }
+.profile-section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.profile-section-head .customer-eyebrow { margin: 0 0 2px; color: var(--muted); font-size: 14px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.profile-section-head h2 { margin: 0; font-size: 21px; letter-spacing: -.025em; line-height: 1.2; }
+.profile-card { padding: 20px; }
+.profile-form { display: grid; gap: 16px; margin-top: 6px; }
+.field { display: grid; gap: 5px; margin: 0; }
+.field > span { color: #39322e; font-size: 14px; font-weight: 700; }
+.consent-row { display: flex; align-items: flex-start; gap: 10px; color: #39322e; cursor: pointer; font-size: 14px; line-height: 1.45; }
+.profile-field-note { margin: 4px 0 0; color: #5e5751; font-size: 14px; line-height: 1.5; }
+.profile-capacity { color: #5e5751; font-size: 14px; }
+.profile-error { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin: 0 0 16px; border: 1px solid #e8c9c6; border-radius: 12px; background: #fffafa; padding: 12px 15px; }
+.profile-error p { margin: 0; color: #7d2c26; font-size: 14px; }
+.profile-skeleton { display: grid; gap: 12px; margin-top: 10px; }
+.profile-skeleton-line { height: 74px; border-radius: 8px; background: linear-gradient(90deg, #eeece9, #f7f6f4, #eeece9); background-size: 200% 100%; animation: skeleton-shimmer 1.4s ease-in-out infinite; }
+.profile-skeleton-line.short { width: 52%; }
+
+.profile-address-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 0 14px; flex-wrap: wrap; }
+.profile-address-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.profile-address-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 14px 16px; }
+.profile-address-card.profile-address-default { border-color: var(--brand); background: #fbf7f7; }
+.profile-address-main { display: grid; min-width: 0; gap: 6px; flex: 1; }
+.profile-address-label-row { display: flex; gap: 8px; flex: none; }
+.profile-address-text { margin: 0 0 2px; font-size: 15px; }
+.profile-address-coords { margin: 0; color: #5e5751; font-size: 13px; }
+.profile-address-actions { display: flex; gap: 8px; flex: none; }
+.profile-address-actions .button { min-height: 40px; min-width: 72px; padding: 0 10px; font-size: 13px; }
+
+.profile-favourite-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
+.profile-favourite-card { display: grid; grid-template-columns: 1fr; gap: 10px; border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 12px; }
+.profile-favourite-photo-wrap { position: relative; border-radius: 10px; overflow: hidden; background: #eef0ee; aspect-ratio: 1; }
+.profile-favourite-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
+.profile-favourite-photo-placeholder { width: 100%; height: 100%; }
+.profile-favourite-remove { position: absolute; top: 8px; right: 8px; min-height: 32px; min-width: 32px; padding: 0; display: grid; place-items: center; font-size: 20px; line-height: 1; border-radius: 6px; background: rgba(255 255 255 / 85%); color: #842f2a; }
+.profile-favourite-copy { display: grid; gap: 4px; }
+.profile-favourite-copy strong { margin: 0; font-size: 14px; }
+.profile-favourite-price { margin: 0; font-size: 15px; font-weight: 700; color: var(--brand-deep); }
+
+.profile-privacy-copy { margin: 0 0 14px; color: #514944; font-size: 14px; line-height: 1.6; }
+.profile-privacy-link { color: #572923; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.profile-delete-button { width: 100%; min-height: 46px; }
+.profile-delete-dialog { width: min(460px, calc(100vw - 24px)); }
+.profile-delete-what { margin: 10px 0 10px; padding: 0; padding-left: 20px; color: #514944; font-size: 14px; line-height: 1.6; list-style: disc; }
+.profile-delete-what li { margin-bottom: 6px; }
+.profile-delete-note { margin: 0; color: #5e5751; font-size: 14px; }
+
+/* Favourite card (shared) */
+.home-favourites-section { margin: 0 0 22px; }
+.home-favourites-section .profile-section-head { margin-bottom: 10px; }
+.home-favourite-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
+.home-favourite-scroll::-webkit-scrollbar { display: none; }
+.home-favourite-scroll .profile-favourite-card { flex: none; width: 150px; }
+
+/* Heart toggle */
+.heart-toggle { display: grid; width: 44px; height: 44px; place-items: center; border: 0; border-radius: 8px; background: transparent; color: #8a817b; cursor: pointer; font-size: 18px; line-height: 1; padding: 0; }
+.heart-toggle:hover { background: #f4f2f0; color: #39322e; }
+.heart-toggle-on { color: #b03a2e; }
+.heart-toggle-busy { opacity: .6; cursor: progress; }
+
+/* Checkout saved addresses */
+.checkout-saved-addresses-card { margin-top: 6px; }
+.checkout-saved-addresses { display: grid; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
+.checkout-saved-address { display: flex; align-items: center; gap: 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 10px 12px; cursor: pointer; min-height: 48px; }
+.checkout-saved-address:hover { border-color: var(--brand); background: #f7f5f3; }
+.checkout-saved-address-selected { border-color: var(--brand); background: #fbf7f7; }
+.checkout-saved-address input { margin: 0; }
+.checkout-saved-address > div { display: grid; min-width: 0; gap: 3px; flex: 1; }
+.checkout-saved-address-label-row { display: flex; gap: 8px; flex: none; }
+.checkout-saved-address-text { margin: 0 0 2px; font-size: 14px; }
+.checkout-saved-address-coords { margin: 0; color: #5e5751; font-size: 13px; }
+.checkout-save-address { margin-top: 8px; display: grid; gap: 6px; }
+
+@media (max-width: 680px) {
+  .profile-page { padding: 20px 16px 88px; }
+  .profile-heading { font-size: 24px; margin-bottom: 14px; }
+  .profile-section-head { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .profile-address-card { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .profile-address-actions { width: 100%; justify-content: space-between; }
+  .profile-address-actions .button { flex: 1; }
+  .profile-favourite-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .profile-delete-dialog { width: calc(100vw - 24px); }
+  .home-favourite-scroll .profile-favourite-card { width: 140px; }
+}
 
 @media (max-width: 680px) {
   .catering-page { padding: 22px 16px 72px; }

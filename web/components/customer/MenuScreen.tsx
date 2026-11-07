@@ -8,7 +8,8 @@ import { AccountMenu } from "@/components/customer/AccountMenu";
 import { CartSummary } from "@/components/customer/CartSummary";
 import { useCart } from "@/components/customer/CartProvider";
 import { FoodImage } from "@/components/customer/FoodImage";
-import { api, describeApiError } from "@/lib/api";
+import { HeartToggle } from "@/components/customer/HeartToggle";
+import { api, describeApiError, addFavourite, listFavourites, removeFavourite } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import {
   cartItemCount,
@@ -53,12 +54,16 @@ function ItemCard({
   categoryAvailable,
   onOpen,
   outletId,
+  isFavourite,
+  onToggleFavourite,
   priority = false,
 }: {
   item: MenuItem;
   categoryAvailable: boolean;
   onOpen: (item: MenuItem) => void;
   outletId: string;
+  isFavourite: boolean;
+  onToggleFavourite: () => void;
   priority?: boolean;
 }) {
   const { cart, addLine, setQuantity, removeLine } = useCart();
@@ -99,6 +104,7 @@ function ItemCard({
           <span className="menu-item-name-row">
             <strong>{item.name}</strong>
             <VegMark isVeg={item.is_veg} />
+            <HeartToggle itemId={item.id} isFavourite={isFavourite} onToggle={onToggleFavourite} />
           </span>
           <span className="menu-item-description">{item.description}</span>
           <span className="menu-item-meta">
@@ -174,10 +180,14 @@ function ItemSheet({
   item,
   outletId,
   onClose,
+  isFavourite,
+  onToggleFavourite,
 }: {
   item: MenuItem | null;
   outletId: string;
   onClose: () => void;
+  isFavourite: boolean;
+  onToggleFavourite: () => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const { addLine } = useCart();
@@ -249,6 +259,7 @@ function ItemSheet({
                 <div className="menu-item-name-row">
                   <h2>{item.name}</h2>
                   <VegMark isVeg={item.is_veg} />
+                  <HeartToggle itemId={item.id} isFavourite={isFavourite} onToggle={onToggleFavourite} />
                 </div>
                 <p>{item.description}</p>
               </div>
@@ -368,6 +379,7 @@ export function MenuScreen({
   } | null>(null);
   const [suggestionFailure, setSuggestionFailure] = useState<{ key: string; message: string } | null>(null);
   const [suggestionRequestVersion, setSuggestionRequestVersion] = useState(0);
+  const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let active = true;
@@ -422,6 +434,36 @@ export function MenuScreen({
       active = false;
     };
   }, [authReady, customerUserId, outletId, suggestionKey]);
+
+  useEffect(() => {
+    if (!authReady || !(user?.role === "customer")) return;
+    let active = true;
+    void listFavourites()
+      .then((result) => {
+        if (active) {
+          setFavouriteIds(new Set(result.map((favourite) => favourite.item_id)));
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [authReady, user]);
+
+  async function toggleFavourite(itemId: string) {
+    const next = new Set(favouriteIds);
+    if (next.has(itemId)) next.delete(itemId);
+    else next.add(itemId);
+    setFavouriteIds(next);
+    try {
+      if (next.has(itemId)) await addFavourite(itemId);
+      else await removeFavourite(itemId);
+      toast(next.has(itemId) ? "Added to favourites." : "Removed from favourites.", "success");
+    } catch (error) {
+      setFavouriteIds(favouriteIds);
+      toast(describeApiError(error, "We couldn't update your favourites. Try again."), "error");
+    }
+  }
 
   useEffect(() => {
     if (menu) revalidate(menu);
@@ -703,6 +745,8 @@ export function MenuScreen({
                     categoryAvailable={category.available_now && menu.outlet.is_open}
                     outletId={outletId}
                     onOpen={setActiveItem}
+                    isFavourite={favouriteIds.has(item.id)}
+                    onToggleFavourite={() => toggleFavourite(item.id)}
                     priority={categoryIndex === 0 && item.id === category.items[0]?.id}
                   />
                 ))}
@@ -727,6 +771,8 @@ export function MenuScreen({
         item={activeItem}
         outletId={outletId}
         onClose={() => setActiveItem(null)}
+        isFavourite={activeItem ? favouriteIds.has(activeItem.id) : false}
+        onToggleFavourite={() => { if (activeItem) toggleFavourite(activeItem.id); }}
       />
       {menu && <footer className="customer-footer">
         <div><strong>Hyderabad Biryani</strong><span>FSSAI {menu.outlet.fssai_number}</span></div>

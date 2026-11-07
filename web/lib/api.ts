@@ -185,7 +185,98 @@ export type MenuItem = {
   variants: Variant[];
   addon_ids: string[];
 };
+export type CustomerProfile = {
+  id: string;
+  name: string;
+  phone: string;
+  marketing_opt_in: boolean;
+  created_at: string;
+};
+
+export type CustomerAddress = {
+  id: string;
+  user_id: string;
+  label: "home" | "work" | "other";
+  address: string;
+  lat: number;
+  lng: number;
+  is_default: boolean;
+  created_at: string;
+};
+
+export type CustomerAddressInput = {
+  label: "home" | "work" | "other";
+  address: string;
+  lat: number;
+  lng: number;
+  is_default: boolean;
+};
+
+export type CustomerFavorite = {
+  item_id: string;
+  name: string;
+  photo_url: string | null;
+  price_inr: number;
+  is_veg: boolean;
+  created_at: string;
+};
+
 export type Outlet = { id: string; name: string; city: string; is_open: boolean };
 export type CityPrice = { id: string; item_id: string; city: string; price_inr: number };
 
 export const jsonBody = (body: unknown): string => JSON.stringify(body);
+
+export async function getProfile(): Promise<CustomerProfile> {
+  return api<CustomerProfile>("/me/profile");
+}
+
+export async function patchProfile(updates: {
+  name?: string | null;
+  marketing_opt_in?: boolean | null;
+}): Promise<CustomerProfile> {
+  return api<CustomerProfile>("/me/profile", {
+    method: "PATCH",
+    body: jsonBody(updates),
+  });
+}
+
+export async function listAddresses(): Promise<CustomerAddress[]> {
+  return api<CustomerAddress[]>("/me/addresses");
+}
+
+export async function createAddress(input: CustomerAddressInput): Promise<CustomerAddress> {
+  return api<CustomerAddress>("/me/addresses", {
+    method: "POST",
+    body: jsonBody(input),
+  });
+}
+
+export async function patchAddress(
+  addressId: string,
+  updates: Partial<CustomerAddressInput> & { is_default?: boolean | null },
+): Promise<CustomerAddress> {
+  return api<CustomerAddress>(`/me/addresses/${encodeURIComponent(addressId)}`, {
+    method: "PATCH",
+    body: jsonBody(updates),
+  });
+}
+
+export async function deleteAddress(addressId: string): Promise<void> {
+  return api<void>(`/me/addresses/${encodeURIComponent(addressId)}`, { method: "DELETE" });
+}
+
+export async function listFavourites(): Promise<CustomerFavorite[]> {
+  return api<CustomerFavorite[]>("/me/favourites");
+}
+
+export async function addFavourite(itemId: string): Promise<void> {
+  return api<void>(`/me/favourites/${encodeURIComponent(itemId)}`, { method: "PUT" });
+}
+
+export async function removeFavourite(itemId: string): Promise<void> {
+  return api<void>(`/me/favourites/${encodeURIComponent(itemId)}`, { method: "DELETE" });
+}
+
+export async function deleteMyAccount(): Promise<void> {
+  return api<void>("/me", { method: "DELETE" });
+}

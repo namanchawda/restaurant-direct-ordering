@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/test-cart.mjs && node scripts/test-payment.mjs && node scripts/test-checkout.mjs && node scripts/test-kitchen.mjs && node scripts/test-live-events.mjs && node scripts/test-order-again.mjs && node scripts/test-free-delivery.mjs && node scripts/test-party.mjs && node scripts/test-catering.mjs",
+    "test": "node scripts/test-cart.mjs && node scripts/test-payment.mjs && node scripts/test-checkout.mjs && node scripts/test-kitchen.mjs && node scripts/test-live-events.mjs && node scripts/test-order-again.mjs && node scripts/test-free-delivery.mjs && node scripts/test-party.mjs && node scripts/test-catering.mjs && node scripts/test-customer-profile.mjs && node scripts/test-estimate-breakdown.mjs",
     "test:cart": "node scripts/test-cart.mjs",
     "test:payment": "node scripts/test-payment.mjs",
     "test:checkout": "node scripts/test-checkout.mjs",
@@ -19,7 +19,8 @@
     "test:free-delivery": "node scripts/test-free-delivery.mjs",
     "test:unpaid-order": "node scripts/test-unpaid-order.mjs",
     "test:party": "node scripts/test-party.mjs",
-    "test:catering": "node scripts/test-catering.mjs"
+    "test:catering": "node scripts/test-catering.mjs",
+    "test:customer-profile": "node scripts/test-customer-profile.mjs"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

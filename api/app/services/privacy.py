@@ -9,7 +9,14 @@ from __future__ import annotations
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Order, User
+from app.models import (
+    CustomerAddress,
+    CustomerFavorite,
+    LoyaltyAccount,
+    LoyaltyTransaction,
+    Order,
+    User,
+)
 
 
 async def delete_customer_data(session: AsyncSession, phone: str) -> dict[str, object]:
@@ -47,3 +54,80 @@ async def delete_customer_data(session: AsyncSession, phone: str) -> dict[str, o
         "deleted_orders": orders_count,
         "non_customers_found": len(non_customers),
     }
+
+
+async def anonymise_customer(session: AsyncSession, user: User) -> dict[str, object]:
+    """Anonymise a customer's personal data in place for a DPDP erasure request.
+
+    The user row is kept (name and phone are anonymised, marketing consent and
+    password are cleared) so that their orders remain for accounting with the
+    user detached. Saved addresses, favourites and loyalty rows are deleted.
+
+    Returns counts of what was erased. Orders are kept untouched.
+    """
+    if user.role != "customer":
+        return {
+            "phone": user.phone,
+            "anonymised": False,
+            "error": "Only customer accounts can be anonymised.",
+        }
+
+    anonymised_phone = f"del-{str(user.id)[:12]}"
+    user.name = "Deleted Customer"
+    user.phone = anonymised_phone
+    user.marketing_opt_in = False
+    user.password_hash = None
+    session.add(user)
+
+    address_count = int(
+        await session.scalar(
+            select(func.count()).select_from(CustomerAddress).where(
+                CustomerAddress.user_id == user.id
+            )
+        )
+        or 0
+    )
+    favourite_count = int(
+        await session.scalar(
+            select(func.count()).select_from(CustomerFavorite).where(
+                CustomerFavorite.user_id == user.id
+            )
+        )
+        or 0
+    )
+    loyalty_tx_count = int(
+        await session.scalar(
+            select(func.count()).select_from(LoyaltyTransaction).where(
+                LoyaltyTransaction.user_id == user.id
+            )
+        )
+        or 0
+    )
+    await session.execute(
+        delete(CustomerAddress).where(CustomerAddress.user_id == user.id)
+    )
+    await session.execute(
+        delete(CustomerFavorite).where(CustomerFavorite.user_id == user.id)
+    )
+    await session.execute(
+        delete(LoyaltyTransaction).where(LoyaltyTransaction.user_id == user.id)
+    )
+    await session.execute(delete(LoyaltyAccount).where(LoyaltyAccount.user_id == user.id))
+
+    orders_count = int(
+        await session.scalar(
+            select(func.count()).select_from(Order).where(Order.user_id == user.id)
+        )
+        or 0
+    )
+    await session.commit()
+    return {
+        "phone": user.phone,
+        "anonymised": True,
+        "deleted_addresses": address_count,
+        "deleted_favourites": favourite_count,
+        "deleted_loyalty_transactions": loyalty_tx_count,
+        "deleted_loyalty_accounts": 1,
+        "orders_kept": orders_count,
+    }
+

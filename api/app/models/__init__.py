@@ -18,6 +18,8 @@ from app.models.models import (
     CouponRedemption,
     PartyOrder,
     PartyStatusEvent,
+    CustomerAddress,
+    CustomerFavorite,
 )
 
 __all__ = [
@@ -40,4 +42,6 @@ __all__ = [
     "CouponRedemption",
     "PartyOrder",
     "PartyStatusEvent",
+    "CustomerAddress",
+    "CustomerFavorite",
 ]

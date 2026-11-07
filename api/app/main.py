@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.api import admin, auth, live, orders, outlets, party_orders
+from app.api import admin, auth, customer, live, orders, outlets, party_orders
 from app.core.config import get_settings
 from app.services.escalation import escalation_loop
 
@@ -41,6 +41,7 @@ app.include_router(orders.kitchen_router)
 app.include_router(live.router)
 app.include_router(admin.router)
 app.include_router(party_orders.router)
+app.include_router(customer.router)
 
 
 @app.exception_handler(StarletteHTTPException)

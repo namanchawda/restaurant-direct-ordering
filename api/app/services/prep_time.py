@@ -40,10 +40,21 @@ def fallback_prep_minutes(min_prep_minutes: int, active_order_count: int) -> tup
 def estimate_breakdown_text(minutes: int, breakdown: dict[str, object] | None) -> str | None:
     if not breakdown:
         return None
-    base = float(breakdown.get("base", 0))
-    queue = float(breakdown.get("queue", 0))
-    correction = float(breakdown.get("correction", 0))
-    return f"Estimate {minutes} min: {base:g} prep + {queue:g} queue + {correction:g} history"
+    base = round(float(breakdown.get("base", 0)))
+    queue = round(float(breakdown.get("queue", 0)))
+    correction = round(float(breakdown.get("correction", 0)))
+    parts = [base, queue, correction]
+    labels = ["prep", "queue", "history"]
+    # Rounding can make the parts drift from the total estimate. Adjust the
+    # largest part so the shown parts still add up to the total estimate.
+    difference = minutes - sum(parts)
+    if difference:
+        largest_index = max(range(3), key=lambda index: (parts[index], -index))
+        parts[largest_index] += difference
+    return (
+        f"Estimate {minutes} min: "
+        + " + ".join(f"{part} {label}" for part, label in zip(parts, labels))
+    )
 
 
 def calculate_promised_at(

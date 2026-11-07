@@ -6,5 +6,10 @@ export default async function OrderPage({
   params: Promise<{ public_id: string }>;
 }) {
   const { public_id } = await params;
-  return <OrderStatusScreen key={public_id} publicId={public_id} />;
+  return (
+    <>
+      <h1 className="sr-only">Order</h1>
+      <OrderStatusScreen key={public_id} publicId={public_id} />
+    </>
+  );
 }
