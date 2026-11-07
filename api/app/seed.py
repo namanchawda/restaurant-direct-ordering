@@ -19,6 +19,7 @@ from app.models import (
     OrderStatusEvent,
     Outlet,
     OutletItemAvailability,
+    Rider,
     User,
 )
 
@@ -170,6 +171,17 @@ DEMO_USERS = [
     {"name": "Demo Admin", "phone": "9000000099", "role": "admin", "outlet": None, "password": "DemoAdmin!2026", "marketing_opt_in": False},
 ]
 
+RIDERS = [
+    {"name": "Ravi", "vehicle_number": "TS 09 AB 1201", "rating": 4.8, "masked_phone": "98XXXXX210"},
+    {"name": "Imran", "vehicle_number": "TS 08 CD 4420", "rating": 4.7, "masked_phone": "98XXXXX321"},
+    {"name": "Suresh", "vehicle_number": "TS 10 EF 7614", "rating": 4.9, "masked_phone": "98XXXXX432"},
+    {"name": "Kiran", "vehicle_number": "TS 09 GH 8830", "rating": 4.6, "masked_phone": "98XXXXX543"},
+    {"name": "Naveen", "vehicle_number": "TS 07 JK 1145", "rating": 4.8, "masked_phone": "98XXXXX654"},
+    {"name": "Arjun", "vehicle_number": "TS 11 LM 2290", "rating": 4.5, "masked_phone": "98XXXXX765"},
+    {"name": "Faiz", "vehicle_number": "TS 12 NP 3371", "rating": 4.7, "masked_phone": "98XXXXX876"},
+    {"name": "Vikram", "vehicle_number": "TS 13 QR 4482", "rating": 4.9, "masked_phone": "98XXXXX987"},
+]
+
 SAMPLE_ORDERS = [
     {
         "public_id": "WEB-778120",
@@ -235,6 +247,10 @@ def _upsert(
 
 async def seed_data(session: AsyncSession) -> None:
     async with session.begin():
+        riders = {rider.name: rider for rider in (await session.scalars(select(Rider))).all()}
+        for data in RIDERS:
+            _upsert(session, riders, data["name"], Rider, {**data, "is_available": True})
+        await session.flush()
         outlet_names = [data["name"] for data in OUTLETS]
         outlets = {
             outlet.name: outlet
@@ -532,7 +548,7 @@ async def seed_data(session: AsyncSession) -> None:
 
     print(
         f"Seeded {len(OUTLETS)} outlets, {len(MENU_ITEMS)} menu items, "
-        f"{len(DEMO_USERS)} demo users, and {len(SAMPLE_ORDERS)} sample orders."
+        f"{len(DEMO_USERS)} demo users, {len(RIDERS)} fictional riders, and {len(SAMPLE_ORDERS)} sample orders."
     )
 
 

@@ -83,12 +83,14 @@ def publish(channel: str, event_type: str, payload: dict[str, Any]) -> Event:
 
 
 async def publish_order_event(
-    order: Order, event_type: str | None = None
+    order: Order, event_type: str | None = None, message: str | None = None
 ) -> list[Event]:
     resolved_type = event_type or (
         "order.created" if order.payment_status == "paid" else "order.updated"
     )
     payload = {"type": resolved_type, "order": serialize_order(order)}
+    if message:
+        payload["message"] = message
     channels = [order_channel(order.public_id)]
     if order.payment_status == "paid":
         channels.append(outlet_channel(order.outlet_id))

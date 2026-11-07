@@ -20,6 +20,7 @@ import type { CartLine } from "@/lib/cart";
 import { formatINR, servedWindow } from "@/lib/customer";
 import type { MenuItem, OutletMenu } from "@/lib/customer";
 import { openOrderAgainItem } from "@/lib/order-suggestions";
+import type { DeliveryArea } from "@/lib/customer";
 
 type OrderSuggestion = {
   item_id: string;
@@ -336,7 +337,19 @@ function MenuSkeleton() {
   );
 }
 
-export function MenuScreen({ outletId }: { outletId: string }) {
+export function MenuScreen({
+  outletId,
+  browseFirst = false,
+  deliveryArea,
+  onChangeLocation,
+  onOpenCart,
+}: {
+  outletId: string;
+  browseFirst?: boolean;
+  deliveryArea?: DeliveryArea;
+  onChangeLocation?: () => void;
+  onOpenCart?: () => void;
+}) {
   const toast = useToast();
   const { cart, hydrated, revalidate } = useCart();
   const { user, ready: authReady } = useAuth();
@@ -482,25 +495,65 @@ export function MenuScreen({ outletId }: { outletId: string }) {
         <>
           <header className="menu-header">
             <div className="menu-header-main">
-              <div className="menu-outlet-title">
-                <p className="customer-eyebrow">Fresh from the kitchen</p>
-                <h1>{menu.outlet.name}</h1>
-              </div>
+              <Link className="brand-lockup" href="/">
+                <span className="brand-mark" aria-hidden="true">H</span>
+                <span>Hyderabad Biryani</span>
+              </Link>
               <div className="menu-header-actions">
+                {browseFirst && deliveryArea && (
+                  <button type="button" className="location-chip" onClick={onChangeLocation}>
+                    <span aria-hidden="true">⌖</span> Delivering to {deliveryArea.name}, Hyderabad <u>Change</u>
+                  </button>
+                )}
+                {!browseFirst && <div className="menu-outlet-title"><p className="customer-eyebrow">Fresh from the kitchen</p><h1>{menu.outlet.name}</h1></div>}
+                {browseFirst && <label className="header-search"><span aria-hidden="true">⌕</span><span className="sr-only">Search menu</span><input type="search" placeholder="Search dishes" value={search} onChange={(event) => setSearch(event.target.value)} /></label>}
                 <span className={`outlet-status ${menu.outlet.is_open ? "is-open" : "is-closed"}`}>
                   <span aria-hidden="true" />
                   {menu.outlet.is_open ? "Open now" : "Closed"}
                 </span>
                 <AccountMenu />
-                <Link className="change-link" href="/?change=1">Change</Link>
+                <button type="button" className="header-cart-button" onClick={onOpenCart} aria-label={`Open cart, ${cartItemCount(cart.lines)} items`}>
+                  <span aria-hidden="true">🛒</span><span className="header-cart-count">{cartItemCount(cart.lines)}</span>
+                </button>
+                {!browseFirst && <Link className="change-link" href="/?change=1">Change</Link>}
               </div>
             </div>
-            <p className="menu-header-details">
+            {!browseFirst && <p className="menu-header-details">
               FSSAI {menu.outlet.fssai_number}
               {menu.outlet.type === "cloud_kitchen" && <span className="cloud-kitchen-label">Cloud kitchen</span>}
-            </p>
+            </p>}
             <p className="menu-gst-note">All menu prices {menu.price_note}</p>
           </header>
+
+          {browseFirst && (
+            <section className="home-hero" aria-labelledby="home-hero-title">
+              <div className="home-hero-copy">
+                <p className="customer-eyebrow">Fresh from {menu.outlet.name}</p>
+                <h1 id="home-hero-title">Biryani worth coming back for.</h1>
+                <p>Slow-cooked classics and Hyderabadi favourites, made to travel well.</p>
+                <div className="home-hero-actions">
+                  <Button variant="primary" onClick={() => document.getElementById("menu-section")?.scrollIntoView({ behavior: "smooth" })}>Order now</Button>
+                  <span className={`hero-delivery ${menu.outlet.is_open ? "is-open" : "is-closed"}`}>
+                    <span aria-hidden="true">●</span> {menu.outlet.is_open ? "Open now · Delivery in about 35 min" : "Closed now · Order when we open"}
+                  </span>
+                </div>
+              </div>
+              <FoodImage src={menuItems[0]?.photo_url ?? ""} name={menuItems[0]?.name ?? "Hyderabadi food"} isVeg={menuItems[0]?.is_veg ?? false} className="home-hero-photo" priority />
+            </section>
+          )}
+
+          {browseFirst && (
+            <section className="home-discovery" aria-label="Discover the menu">
+              <div className="home-section-heading"><div><p className="customer-eyebrow">Start with a favourite</p><h2>What are you craving?</h2></div></div>
+              <div className="category-photo-row">
+                {menu.categories.map((category) => {
+                  const item = category.items[0];
+                  return item ? <button className="category-photo-tile" type="button" key={category.id} onClick={() => jumpToCategory(category.id)}><FoodImage src={item.photo_url} name={category.name} isVeg={item.is_veg} className="category-photo" /><strong>{category.name}</strong></button> : null;
+                })}
+              </div>
+              <div className="offers-strip"><span aria-hidden="true">✦</span><strong>Good food, made direct</strong><span>Free delivery over a threshold · Earn points on every direct order</span><em>Coming in the next steps</em></div>
+            </section>
+          )}
 
           <div className="menu-tools">
             <label className="menu-search">
@@ -587,7 +640,7 @@ export function MenuScreen({ outletId }: { outletId: string }) {
         </>
       )}
 
-      <div className="menu-layout">
+      <div className="menu-layout" id={browseFirst ? "menu-section" : undefined}>
         <div className="menu-content">
           {loading && <MenuSkeleton />}
           {error && (
@@ -670,6 +723,11 @@ export function MenuScreen({ outletId }: { outletId: string }) {
         outletId={outletId}
         onClose={() => setActiveItem(null)}
       />
+      {menu && <footer className="customer-footer">
+        <div><strong>Hyderabad Biryani</strong><span>FSSAI {menu.outlet.fssai_number}</span></div>
+        <div><span>Prices include 5% GST</span><Link href="/privacy">Privacy</Link></div>
+        <span>Outlet: {menu.outlet.name}{menu.outlet.address ? ` · ${menu.outlet.address}` : ""}</span>
+      </footer>}
     </main>
   );
 }

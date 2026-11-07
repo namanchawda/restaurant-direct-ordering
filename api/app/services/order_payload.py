@@ -23,6 +23,8 @@ def order_load_options():
         selectinload(Order.items),
         selectinload(Order.status_events),
         selectinload(Order.user),
+        selectinload(Order.rider),
+        selectinload(Order.outlet),
     )
 
 
@@ -67,6 +69,8 @@ def serialize_order(order: Order) -> dict[str, object]:
         "is_late": is_late,
         "minutes_late": minutes_late,
         "delivery_address": order.delivery_address,
+        "delivery_lat": order.delivery_lat,
+        "delivery_lng": order.delivery_lng,
         "notes": order.notes,
         "cancellation_reason": order.cancellation_reason,
         "customer_first_name": customer_first_name(order),
@@ -80,6 +84,11 @@ def serialize_order(order: Order) -> dict[str, object]:
         ),
         "escalated_at": order.escalated_at,
         "escalation_acknowledged_at": order.escalation_acknowledged_at,
+        "rider_id": str(order.rider_id) if order.rider_id else None,
+        "rider_assigned_at": order.rider_assigned_at,
+        "picked_up_at": order.picked_up_at,
+        "delivered_at": order.delivered_at,
+        "delivery_eta_at": order.delivery_eta_at,
         "is_escalated": is_escalated,
         "price_note": "incl. 5% GST",
         "items": [

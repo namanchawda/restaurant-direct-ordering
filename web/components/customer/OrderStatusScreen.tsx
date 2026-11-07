@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { Badge, Button, Card, EmptyState, Price } from "@/components/ui";
+import { Badge, Button, Card, EmptyState, Price, useToast } from "@/components/ui";
 import { AccountMenu } from "@/components/customer/AccountMenu";
 import { useOrderLive } from "@/components/customer/useOrderLive";
+import { useDeliveryTracking } from "@/components/customer/useDeliveryTracking";
+import { TRACKING_STEPS } from "@/lib/delivery";
 import { api, ApiError, describeApiError } from "@/lib/api";
 import type { OutletResult } from "@/lib/customer";
 import {
@@ -24,6 +27,11 @@ import {
 } from "@/lib/orders";
 import type { Order } from "@/lib/orders";
 
+const DeliveryMap = dynamic(
+  () => import("@/components/customer/DeliveryMap").then((module) => module.DeliveryMap),
+  { ssr: false },
+);
+
 function statusTone(order: Order): "neutral" | "success" | "warning" | "danger" {
   if (order.status === "cancelled") return "danger";
   if (order.status === "delivered") return "success";
@@ -33,6 +41,8 @@ function statusTone(order: Order): "neutral" | "success" | "warning" | "danger" 
 
 export function OrderStatusScreen({ publicId }: { publicId: string }) {
   const { order, loading, error, retry } = useOrderLive(publicId);
+  const { tracking } = useDeliveryTracking(publicId, order?.status);
+  const toast = useToast();
   const [outlet, setOutlet] = useState<OutletResult | null>(null);
 
   useEffect(() => {
@@ -127,6 +137,18 @@ export function OrderStatusScreen({ publicId }: { publicId: string }) {
       <div className="order-status-live sr-only" aria-live="polite" aria-atomic="true">
         Order status: {statusLabel(order.status)}.
       </div>
+      {tracking && order.status !== "cancelled" && (
+        <section className="delivery-experience" aria-label="Live delivery tracking">
+          <div className="delivery-banner">
+            <div><p className="customer-eyebrow">{tracking.stage === "delivered" ? "Delivered" : "Live delivery"}</p><h1>{tracking.stage === "delivered" ? "Your order has arrived" : tracking.stage === "rider_assigned" ? `Rider ${tracking.rider?.name ?? "assigned"} is heading to the restaurant` : tracking.stage === "at_restaurant" ? "Your rider is at the restaurant" : tracking.stage === "arriving" ? "Your rider is arriving" : tracking.stage === "on_the_way" ? "On the way" : "Preparing your order"}</h1></div>
+            <span className="delivery-sim-badge">Demo delivery · fictional rider</span>
+          </div>
+          {tracking.stage !== "delivered" ? <div className="delivery-eta"><strong>Arriving by {tracking.eta_at ? formatTime(tracking.eta_at) : formatTime(order.promised_at)}</strong><span>{tracking.minutes_remaining === null ? "We’re finding the best rider." : tracking.minutes_remaining === 0 ? "Any moment now" : `${tracking.minutes_remaining} min left · ${tracking.distance_km} km route`}</span></div> : <div className="delivery-complete"><strong>Delivered safely</strong><span>Thanks for ordering direct.</span></div>}
+          <DeliveryMap tracking={tracking} />
+          {tracking.rider && tracking.stage !== "delivered" && <div className="rider-card"><div className="rider-avatar" aria-hidden="true">{tracking.rider.name.slice(0, 1)}</div><div><strong>{tracking.rider.name}</strong><span>{tracking.rider.vehicle} · ★ {tracking.rider.rating.toFixed(1)}</span><small>Fictional rider · {tracking.rider.masked_phone}</small></div><Button variant="secondary" onClick={() => toast("Calls are simulated in this demo", "info")}>Call rider</Button></div>}
+          <ol className="delivery-stepper" aria-label="Delivery progress">{TRACKING_STEPS.map(([key, label]) => <li key={key} className={tracking.stage === key ? "is-current" : TRACKING_STEPS.findIndex(([s]) => s === tracking.stage) > TRACKING_STEPS.findIndex(([s]) => s === key) ? "is-done" : ""}><span aria-hidden="true">{tracking.stage === key ? "•" : "✓"}</span>{label}</li>)}</ol>
+        </section>
+      )}
       <div className="order-heading">
         <div>
           <p className="customer-eyebrow">Order {order.public_id}</p>
@@ -205,7 +227,7 @@ export function OrderStatusScreen({ publicId }: { publicId: string }) {
               </span>
             </div>
 
-            <ol className="order-steps" aria-label="Order progress">
+            {order.status !== "delivered" && <ol className="order-steps" aria-label="Order progress">
               {ORDER_STEPS.map((step, index) => {
                 const completed = stepIndex >= index;
                 const current = stepIndex === index;
@@ -222,7 +244,7 @@ export function OrderStatusScreen({ publicId }: { publicId: string }) {
                   </li>
                 );
               })}
-            </ol>
+            </ol>}
           </Card>
         </>
       )}

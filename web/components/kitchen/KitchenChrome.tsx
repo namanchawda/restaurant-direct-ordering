@@ -153,20 +153,20 @@ const CLOCK_FORMAT = new Intl.DateTimeFormat("en-IN", {
 });
 
 function KitchenClock() {
-  const [now, setNow] = useState(() => new Date());
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
+    const initialTimer = window.setTimeout(() => setNow(new Date()), 0);
     const timer = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(timer);
+    };
   }, []);
 
   return (
-    <time
-      className="kd-clock"
-      dateTime={now.toISOString()}
-      suppressHydrationWarning
-    >
-      {CLOCK_FORMAT.format(now)}
+    <time className="kd-clock" dateTime={now?.toISOString()}>
+      {now ? CLOCK_FORMAT.format(now) : "—"}
     </time>
   );
 }

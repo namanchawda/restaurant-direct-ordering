@@ -230,6 +230,20 @@ class User(Base):
     orders: Mapped[list["Order"]] = relationship(back_populates="user")
 
 
+class Rider(Base):
+    __tablename__ = "riders"
+    __table_args__ = (CheckConstraint("rating BETWEEN 0 AND 5", name="ck_riders_rating"),)
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    vehicle_number: Mapped[str] = mapped_column(String(40), nullable=False)
+    rating: Mapped[float] = mapped_column(Float, nullable=False)
+    masked_phone: Mapped[str] = mapped_column(String(20), nullable=False)
+    is_available: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("true"), nullable=False)
+
+    orders: Mapped[list["Order"]] = relationship(back_populates="rider")
+
+
 class Order(TimestampMixin, Base):
     __tablename__ = "orders"
     __table_args__ = (
@@ -272,9 +286,15 @@ class Order(TimestampMixin, Base):
     escalation_acknowledged_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    rider_id: Mapped[UUID | None] = mapped_column(ForeignKey("riders.id", ondelete="SET NULL"), nullable=True, index=True)
+    rider_assigned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    picked_up_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    delivery_eta_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     outlet: Mapped["Outlet"] = relationship(back_populates="orders")
     user: Mapped["User"] = relationship(back_populates="orders")
+    rider: Mapped["Rider | None"] = relationship(back_populates="orders")
     items: Mapped[list["OrderItem"]] = relationship(
         back_populates="order", cascade="all, delete-orphan"
     )

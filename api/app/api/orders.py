@@ -20,6 +20,7 @@ from app.models import (
     OrderStatusEvent,
     Outlet,
     OutletItemAvailability,
+    Rider,
     User,
 )
 from app.schemas import (
@@ -39,6 +40,7 @@ from app.services.order_payload import (
     serialize_order,
 )
 from app.services.prep_time import calculate_promised_at, estimate_prep_minutes, fallback_prep_minutes
+from app.services.delivery import derive_stage, delivery_progress, generate_route, interpolate_route, route_distance_km, trip_duration
 
 router = APIRouter(tags=["orders"])
 logger = logging.getLogger(__name__)
@@ -387,6 +389,41 @@ async def get_order(
     return serialize_order(order)
 
 
+@router.get("/orders/{public_id}/tracking")
+async def track_order(
+    public_id: str,
+    user: User = Depends(require_role("customer")),
+    session: AsyncSession = Depends(get_db),
+) -> dict[str, object]:
+    order = await _get_order(session, public_id)
+    if order.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Order not found.")
+    if order.delivery_lat is None or order.delivery_lng is None:
+        raise HTTPException(status_code=409, detail="This order has no delivery location.")
+    outlet = await session.get(Outlet, order.outlet_id)
+    rider = order.rider
+    route = generate_route((outlet.lat, outlet.lng), (order.delivery_lat, order.delivery_lng), order.id)
+    duration = trip_duration(route)
+    progress = delivery_progress(order.picked_up_at, _now_utc(), duration)
+    stage = derive_stage(status=order.status, rider_assigned_at=order.rider_assigned_at, picked_up_at=order.picked_up_at, delivered_at=order.delivered_at, progress=progress)
+    position, heading = interpolate_route(route, progress)
+    eta_at = order.delivery_eta_at or (order.picked_up_at + duration if order.picked_up_at else None)
+    minutes = max(0, round((eta_at - _now_utc()).total_seconds() / 60)) if eta_at else None
+    return {
+        "stage": stage,
+        "rider": {"name": rider.name, "vehicle": rider.vehicle_number, "rating": rider.rating, "masked_phone": rider.masked_phone, "fictional": True} if rider else None,
+        "route": [{"lat": lat, "lng": lng} for lat, lng in route],
+        "current_position": {"lat": position[0], "lng": position[1]},
+        "heading": heading,
+        "progress": progress,
+        "eta_at": eta_at,
+        "minutes_remaining": minutes,
+        "outlet": {"lat": outlet.lat, "lng": outlet.lng, "name": outlet.name},
+        "destination": {"lat": order.delivery_lat, "lng": order.delivery_lng, "address": order.delivery_address},
+        "distance_km": round(route_distance_km(route), 2),
+    }
+
+
 @kitchen_router.get("/orders")
 async def kitchen_orders(
     user: User = Depends(require_role("kitchen")),
@@ -421,13 +458,29 @@ async def update_order_status(
         raise HTTPException(status_code=409, detail="Only paid orders can be processed.")
     if payload.status not in TRANSITIONS.get(order.status, set()):
         raise HTTPException(status_code=409, detail=f"Cannot move an order from {order.status} to {payload.status}.")
+    now = _now_utc()
     order.status = payload.status
+    event_message: str | None = None
+    if payload.status == "preparing" and order.rider_id is None:
+        riders = (await session.scalars(select(Rider).where(Rider.is_available.is_(True)).order_by(Rider.id))).all()
+        if riders:
+            assigned_count = await session.scalar(select(func.count(Order.id)).where(Order.rider_id.is_not(None))) or 0
+            order.rider = riders[assigned_count % len(riders)]
+            order.rider_assigned_at = now
+            event_message = f"Rider {order.rider.name} is on the way to the restaurant"
+    if payload.status == "handed_to_rider":
+        if order.rider_id is None:
+            raise HTTPException(status_code=409, detail="A rider must be assigned before handoff.")
+        order.picked_up_at = now
+        outlet = await session.get(Outlet, order.outlet_id)
+        route = generate_route((outlet.lat, outlet.lng), (order.delivery_lat, order.delivery_lng), order.id)
+        order.delivery_eta_at = now + trip_duration(route)
     if payload.status == "cancelled":
         order.cancellation_reason = payload.reason
-    order.status_events.append(OrderStatusEvent(status=payload.status, at=_now_utc()))
+    order.status_events.append(OrderStatusEvent(status=payload.status, at=now))
     await session.commit()
     order = await _get_order(session, public_id)
-    await publish_order_event(order, event_type="order.updated")
+    await publish_order_event(order, event_type="order.updated", message=event_message)
     return serialize_order(order)
 
 

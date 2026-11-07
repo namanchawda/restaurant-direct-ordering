@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_db, require_role
+from app.core.config import get_settings
 from app.models import (
     Addon,
     Category,
@@ -22,6 +23,7 @@ from app.models import (
     Outlet,
     OutletItemAvailability,
     User,
+    Rider,
 )
 from app.schemas import (
     AddonCreate,
@@ -34,8 +36,48 @@ from app.schemas import (
     MenuItemCreate,
     MenuItemUpdate,
 )
+from app.services.delivery import generate_route, trip_duration
+from app.services.events import publish_order_event
+from app.services.order_payload import order_load_options, serialize_order
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+@router.post("/demo/advance-order")
+async def demo_advance_order(
+    payload: dict[str, str],
+    user: User = Depends(require_role("admin")),
+    session: AsyncSession = Depends(get_db),
+) -> dict[str, object]:
+    if get_settings().environment.lower() in {"production", "prod"}:
+        raise HTTPException(status_code=404, detail="Demo helpers are disabled in production.")
+    public_id = payload.get("public_id", "")
+    order = await session.scalar(select(Order).options(*order_load_options()).where(Order.public_id == public_id))
+    if order is None:
+        raise HTTPException(status_code=404, detail="Order not found.")
+    next_status = {"placed": "accepted", "accepted": "preparing", "preparing": "ready_for_pickup", "ready_for_pickup": "handed_to_rider", "handed_to_rider": "delivered"}.get(order.status)
+    if next_status is None:
+        raise HTTPException(status_code=409, detail="This order has no demo status to advance to.")
+    now = datetime.now(ZoneInfo("UTC"))
+    order.status = next_status
+    if next_status == "preparing" and order.rider_id is None:
+        rider = await session.scalar(select(Rider).where(Rider.is_available.is_(True)).order_by(Rider.id))
+        if rider:
+            order.rider = rider
+            order.rider_assigned_at = now
+    if next_status == "handed_to_rider":
+        order.picked_up_at = now
+        route = generate_route((order.outlet.lat, order.outlet.lng), (order.delivery_lat, order.delivery_lng), order.id)
+        order.delivery_eta_at = now + trip_duration(route)
+    if next_status == "delivered":
+        if order.picked_up_at is None:
+            raise HTTPException(status_code=409, detail="Cannot deliver before pickup.")
+        order.delivered_at = now
+    order.status_events.append(OrderStatusEvent(status=next_status, at=now))
+    await session.commit()
+    order = await session.scalar(select(Order).options(*order_load_options()).where(Order.public_id == public_id))
+    await publish_order_event(order, event_type="order.updated")
+    return serialize_order(order)
 
 
 _IST = ZoneInfo("Asia/Kolkata")

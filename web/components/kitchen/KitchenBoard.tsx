@@ -174,7 +174,7 @@ export function KitchenBoard() {
   const { setStatus } = useKitchenConnection();
   const { soundEnabled, enableSound, playChime } = useKitchenSettings();
   const toast = useToast();
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [cancelOrder, setCancelOrder] = useState<Order | null>(null);
   const [overrideOrder, setOverrideOrder] = useState<Order | null>(null);
@@ -192,8 +192,12 @@ export function KitchenBoard() {
   }, [setStatus]);
 
   useEffect(() => {
+    const initialTimer = window.setTimeout(() => setNow(Date.now()), 0);
     const timer = window.setInterval(() => setNow(Date.now()), 5000);
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearTimeout(initialTimer);
+      window.clearInterval(timer);
+    };
   }, []);
 
   useEffect(() => {

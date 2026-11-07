@@ -1,5 +1,5 @@
-import { OutletPicker } from "@/components/customer/OutletPicker";
+import { BrowseHome } from "@/components/customer/BrowseHome";
 
 export default function Home() {
-  return <OutletPicker />;
+  return <BrowseHome />;
 }

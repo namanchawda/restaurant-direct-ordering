@@ -133,6 +133,7 @@ async def outlet_menu(
         "outlet": {
             "id": str(outlet.id),
             "name": outlet.name,
+            "address": outlet.address,
             "is_open": outlet.is_open,
             "fssai_number": outlet.fssai_number,
             "type": outlet.type,

@@ -7,7 +7,7 @@ const wsOrigin = apiOrigin.replace(/^http/, "ws");
 // Inline styles and scripts are needed by Next.js hydration; eval only benefits dev tooling.
 const contentSecurityPolicy = [
   "default-src 'self'",
-  "img-src 'self' data: blob: https://images.unsplash.com",
+  "img-src 'self' data: blob: https://images.unsplash.com https://tile.openstreetmap.org",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self'",

@@ -58,6 +58,7 @@ export type OutletMenu = {
   outlet: {
     id: string;
     name: string;
+    address?: string;
     is_open: boolean;
     fssai_number: string;
     type: "outlet" | "cloud_kitchen";

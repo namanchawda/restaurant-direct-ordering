@@ -27,7 +27,11 @@ export function AccountMenu() {
     };
   }, [open]);
 
-  if (!ready || !user || user.role !== "customer") return null;
+  if (!ready) return null;
+
+  if (!user || user.role !== "customer") {
+    return <Link className="account-sign-in" href="/login">Sign in</Link>;
+  }
 
   return (
     <div className="account-menu" ref={menuRef}>

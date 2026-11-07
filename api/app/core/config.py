@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     escalation_extend_minutes: int = Field(default=10, ge=1)
     escalation_check_interval_seconds: int = Field(default=30, ge=5)
     kitchen_busy_queue_minutes: float = Field(default=10, gt=0)
+    delivery_speed_kmh: float = Field(default=22, gt=0)
+    delivery_sim_speed: float = Field(default=1, gt=0)
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"

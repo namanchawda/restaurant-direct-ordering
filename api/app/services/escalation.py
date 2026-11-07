@@ -8,10 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.db.session import get_session_factory
-from app.models import Order
+from app.models import Order, OrderStatusEvent
 from app.services.events import publish_order_event
 from app.services.order_payload import LATE_STATUSES, order_load_options
 from app.services.prep_time import calculate_promised_at
+from app.services.delivery import can_auto_deliver, delivery_progress, generate_route, trip_duration
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,23 @@ async def run_escalation_once(
 ) -> list[Order]:
     settings = get_settings()
     current_time = now or datetime.now(UTC)
+    delivered = await session.scalars(
+        select(Order).options(*order_load_options()).where(Order.status == "handed_to_rider", Order.picked_up_at.is_not(None), Order.delivered_at.is_(None))
+    )
+    completed: list[Order] = []
+    for order in delivered:
+        if order.delivery_lat is None or order.delivery_lng is None:
+            continue
+        route = generate_route((order.outlet.lat, order.outlet.lng), (order.delivery_lat, order.delivery_lng), order.id)
+        if can_auto_deliver(picked_up_at=order.picked_up_at, progress=delivery_progress(order.picked_up_at, current_time, trip_duration(route))):
+            order.status = "delivered"
+            order.delivered_at = current_time
+            order.status_events.append(OrderStatusEvent(status="delivered", at=current_time))
+            completed.append(order)
+    if completed:
+        await session.commit()
+        for order in completed:
+            await publish_order_event(order, event_type="order.updated", message="Delivered")
     threshold_minutes = (
         settings.escalation_minutes
         if escalation_minutes is None

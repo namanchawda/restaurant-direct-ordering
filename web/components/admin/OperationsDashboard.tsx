@@ -53,8 +53,7 @@ function dateDaysBefore(day: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
-function rangeQuery(range: DateRange): URLSearchParams {
-  const today = istDate(new Date());
+function rangeQuery(range: DateRange, today: string): URLSearchParams {
   const daysBack = range === "today" ? 0 : range === "7-days" ? 6 : 29;
   const from = dateDaysBefore(today, daysBack);
   return new URLSearchParams({
@@ -168,6 +167,12 @@ export function OperationsDashboard({ scope }: { scope: "admin" | "kitchen" }) {
   const [response, setResponse] = useState<{ key: string; data: DashboardResponse } | null>(null);
   const [failure, setFailure] = useState<{ key: string; message: string } | null>(null);
   const [retryVersion, setRetryVersion] = useState(0);
+  const [today, setToday] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setToday(istDate(new Date())), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (scope !== "admin") return;
@@ -189,13 +194,14 @@ export function OperationsDashboard({ scope }: { scope: "admin" | "kitchen" }) {
     };
   }, [retryVersion, scope]);
 
-  const query = rangeQuery(range);
+  const query = today ? rangeQuery(range, today) : new URLSearchParams();
   if (scope === "admin" && outletId) query.set("outlet_id", outletId);
   const queryString = query.toString();
   const path = scope === "admin" ? "/admin/dashboard" : "/kitchen/stats";
   const queryKey = `${path}?${queryString}&retry=${retryVersion}`;
 
   useEffect(() => {
+    if (!today) return;
     let active = true;
     void api<DashboardResponse>(`${path}?${queryString}`)
       .then((result) => {
@@ -212,7 +218,7 @@ export function OperationsDashboard({ scope }: { scope: "admin" | "kitchen" }) {
     return () => {
       active = false;
     };
-  }, [path, queryKey, queryString]);
+  }, [path, queryKey, queryString, today]);
 
   const data = response?.key === queryKey ? response.data : null;
   const error = failure?.key === queryKey ? failure.message : "";

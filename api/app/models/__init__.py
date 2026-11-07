@@ -10,6 +10,7 @@ from app.models.models import (
     OrderStatusEvent,
     Outlet,
     OutletItemAvailability,
+    Rider,
     User,
 )
 
@@ -25,5 +26,6 @@ __all__ = [
     "OrderStatusEvent",
     "Outlet",
     "OutletItemAvailability",
+    "Rider",
     "User",
 ]

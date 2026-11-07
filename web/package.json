@@ -14,14 +14,17 @@
     "test:checkout": "node scripts/test-checkout.mjs",
     "test:kitchen": "node scripts/test-kitchen.mjs",
     "test:live": "node scripts/test-live-events.mjs",
-    "test:order-again": "node scripts/test-order-again.mjs"
+    "test:order-again": "node scripts/test-order-again.mjs",
+    "test:outlet": "node scripts/test-outlet-selection.mjs"
   },
   "dependencies": {
+    "leaflet": "^1.9.4",
     "next": "16.4.5",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
   "devDependencies": {
+    "@types/leaflet": "^1.9.22",
     "@types/node": "22.19.1",
     "@types/react": "19.1.16",
     "@types/react-dom": "19.1.9",
