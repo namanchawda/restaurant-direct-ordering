@@ -8,6 +8,10 @@
 
 `placed → accepted → preparing → ready_for_pickup → handed_to_rider → delivered`; `placed`, `accepted`, or `preparing` may transition to `cancelled`. The kitchen advances the active stage; the customer sees the same history. A paid order is eligible for kitchen work; pending payment is held.
 
+## Party order lifecycle
+
+`requested → confirmed → completed`, with `requested` able to transition to `rejected` or `cancelled`. A catering manager confirms with an optional adjusted total (a manager note is required when the total changes) and rejects with a required reason. Confirmed orders can be marked completed after the event time has passed. The advance is 25% of the (possibly adjusted) estimated total and is paid through mocked UPI or card. Rules: at least 24 hours notice, 10 to 500 guests, up to 90 days ahead, Rs 3,000 minimum estimated total, and prices inclusive of 5% GST.
+
 ## SSE design
 
 The browser requests a short-lived stream token scoped to the order or kitchen outlet, then opens `/orders/{id}/stream` or `/kitchen/stream`. The broker assigns increasing event IDs and sends `order.created`, `order.updated`, `order.escalated`, and heartbeat comments. The client reconnects with backoff and falls back to polling. A missed history window emits `resync`; the client refetches a fresh snapshot. The current broker is in-process and single-instance.

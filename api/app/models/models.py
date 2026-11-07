@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, time
+from datetime import UTC, date, datetime, time
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -6,6 +6,7 @@ from sqlalchemy import (
     JSON,
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     ForeignKey,
     Float,
@@ -54,6 +55,7 @@ class Outlet(TimestampMixin, Base):
     delivery_radius_km: Mapped[int] = mapped_column(Integer, nullable=False)
     fssai_number: Mapped[str] = mapped_column(String(14), unique=True, nullable=False)
     is_open: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("true"), nullable=False)
+    accepts_party_orders: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("true"), nullable=False)
     min_prep_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
     kitchen_capacity: Mapped[int] = mapped_column(Integer, nullable=False, default=20, server_default=text("20"))
 
@@ -207,7 +209,7 @@ class User(Base):
     __tablename__ = "users"
     __table_args__ = (
         CheckConstraint(
-            "role IN ('customer', 'kitchen', 'admin')", name="ck_users_role"
+            "role IN ('customer', 'kitchen', 'admin', 'catering')", name="ck_users_role"
         ),
     )
 
@@ -235,6 +237,67 @@ class User(Base):
     coupon_redemptions: Mapped[list["CouponRedemption"]] = relationship(
         back_populates="user", foreign_keys="CouponRedemption.user_id"
     )
+    party_orders: Mapped[list["PartyOrder"]] = relationship(back_populates="user", foreign_keys="PartyOrder.user_id")
+
+
+class PartyOrder(TimestampMixin, Base):
+    __tablename__ = "party_orders"
+    __table_args__ = (
+        CheckConstraint("guests BETWEEN 10 AND 500", name="ck_party_orders_guests"),
+        CheckConstraint(
+            "delivery_or_pickup IN ('delivery', 'pickup')",
+            name="ck_party_orders_delivery_or_pickup",
+        ),
+        CheckConstraint(
+            "status IN ('requested', 'confirmed', 'rejected', 'cancelled', 'completed')",
+            name="ck_party_orders_status",
+        ),
+        CheckConstraint("estimated_total_inr >= 0", name="ck_party_orders_total"),
+        CheckConstraint("advance_inr >= 0", name="ck_party_orders_advance"),
+        CheckConstraint(
+            "advance_payment_status IN ('pending', 'paid', 'failed')",
+            name="ck_party_orders_advance_payment_status",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    public_id: Mapped[str] = mapped_column(String(16), unique=True, nullable=False)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True)
+    outlet_id: Mapped[UUID] = mapped_column(ForeignKey("outlets.id", ondelete="RESTRICT"), nullable=False, index=True)
+    event_date: Mapped[date] = mapped_column(Date, nullable=False)
+    event_time: Mapped[time] = mapped_column(Time, nullable=False)
+    guests: Mapped[int] = mapped_column(Integer, nullable=False)
+    delivery_or_pickup: Mapped[str] = mapped_column(String(16), nullable=False)
+    address: Mapped[str | None] = mapped_column(Text, nullable=True)
+    contact_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    contact_phone: Mapped[str] = mapped_column(String(20), nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    items: Mapped[list[dict[str, object]]] = mapped_column(JSON, nullable=False)
+    estimated_total_inr: Mapped[int] = mapped_column(Integer, nullable=False)
+    advance_inr: Mapped[int] = mapped_column(Integer, nullable=False)
+    advance_payment_status: Mapped[str] = mapped_column(String(16), nullable=False, server_default=text("'pending'"))
+    manager_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    confirmed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped["User"] = relationship(back_populates="party_orders", foreign_keys=[user_id])
+    outlet: Mapped["Outlet"] = relationship()
+    confirmer: Mapped["User | None"] = relationship(foreign_keys=[confirmed_by])
+    status_events: Mapped[list["PartyStatusEvent"]] = relationship(
+        back_populates="party_order", cascade="all, delete-orphan", order_by="PartyStatusEvent.at"
+    )
+
+
+class PartyStatusEvent(Base):
+    __tablename__ = "party_status_events"
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    party_order_id: Mapped[UUID] = mapped_column(ForeignKey("party_orders.id", ondelete="CASCADE"), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    party_order: Mapped["PartyOrder"] = relationship(back_populates="status_events")
 
 
 class Rider(Base):

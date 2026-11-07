@@ -9,8 +9,16 @@ The client problem is 25–30% delivery-app commission, fragmented outlet menus,
 - Central menu CMS for items, categories, photos, pricing, availability, and outlet controls.
 - Kitchen board with SSE updates, polling fallback, timers, prep stages, late/escalated states, promise overrides, and item availability.
 - Operations dashboard for orders, prep time, cancellations, repeat customers, and outlet comparison.
+- Catering manager flow at `/catering` (catering or admin role): party order list with Requested, Confirmed, Completed, and Rejected tabs; confirm with optional adjusted total and manager note; reject with a required reason; mark completed after the event; 15-second polling while visible.
 
-Out of scope for this slice: delivery-app integration, an own rider app, replacing billing or inventory, real payments/OTP/messages, and production-scale automation. These Must haves are not built: the party order form, real WhatsApp/SMS, and delivery app integration.
+Party order rules:
+- Customer needs at least 24 hours notice; the date picker disables earlier slots and server errors appear next to the field.
+- Party orders are for 10 to 500 guests, up to 90 days ahead, with a Rs 3,000 minimum estimated total.
+- Advance is 25% of the estimated total (mocked payment; no real payment keys).
+- Statuses: Requested → Confirmed → Advance paid → Completed; Cancel when allowed.
+- Suggestions are plain text only and never add anything to the order.
+
+Out of scope for this slice: delivery-app integration, an own rider app, replacing billing or inventory, real payments/OTP/messages, real WhatsApp or SMS, and production-scale automation.
 
 ## Architecture
 
@@ -102,6 +110,33 @@ Admin coupon endpoints:
 - `PATCH /admin/coupons/{coupon_id}` updates a coupon.
 
 Seeded demo coupons (development/demo data only): `WELCOME100` (Rs 100 off, first order, minimum Rs 399), `BIRYANI10` (10% off up to Rs 120, minimum Rs 299), `PARTY15` (15% off up to Rs 500, minimum Rs 1,500), and `FREESHIP` (Rs 30 off, minimum Rs 249).
+
+## Party order endpoints
+
+Customer endpoints:
+
+- `POST /party-orders/quote` returns items, `estimated_total_inr`, `advance_inr`, `minimum_total_inr`, and `price_note` ("incl. 5% GST") with no side effects.
+- `POST /party-orders` creates a party order (requires customer role).
+- `GET /party-orders/mine` lists the customer's party orders.
+- `GET /party-orders/{public_id}` returns one of the customer's party orders.
+- `POST /party-orders/{public_id}/pay-advance` completes a mocked UPI or card advance payment (requires confirmed order).
+- `POST /party-orders/{public_id}/cancel` lets the customer cancel when allowed.
+
+Catering manager endpoints (catering or admin role):
+
+- `GET /catering/party-orders?status=` lists all party orders, newest requests first; soonest events first within Confirmed.
+- `PATCH /catering/party-orders/{public_id}/confirm` confirms with `manager_note` and optional `adjusted_total_inr` (a note is required when the total changes).
+- `PATCH /catering/party-orders/{public_id}/reject` rejects with a required reason.
+- `PATCH /catering/party-orders/{public_id}/complete` marks a confirmed order completed after the event.
+
+Demo login pointer (development only, from [api/README.md](api/README.md)):
+
+| Role | Phone | Password |
+| --- | --- | --- |
+| Catering manager | `9000000014` | `DemoCatering!2026` |
+| Admin | `9000000099` | `DemoAdmin!2026` |
+
+Catering managers sign in at `/login` and are redirected to `/catering`; kitchen users visiting `/catering` are redirected back to login with a clear message.
 
 ## Known limitations
 

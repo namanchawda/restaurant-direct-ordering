@@ -2,7 +2,7 @@
 from sqlalchemy import delete, select
 
 from app.db.session import get_session_factory
-from app.models import CouponRedemption, LoyaltyAccount, LoyaltyTransaction, Order, User
+from app.models import CouponRedemption, LoyaltyAccount, LoyaltyTransaction, Order, PartyOrder, PartyStatusEvent, User
 
 
 async def delete_customer_data(phone: str) -> None:
@@ -21,6 +21,10 @@ async def delete_customer_data(phone: str) -> None:
         await session.execute(
             delete(LoyaltyAccount).where(LoyaltyAccount.user_id == user.id)
         )
+        party_ids = list((await session.scalars(select(PartyOrder.id).where(PartyOrder.user_id == user.id))).all())
+        if party_ids:
+            await session.execute(delete(PartyStatusEvent).where(PartyStatusEvent.party_order_id.in_(party_ids)))
+            await session.execute(delete(PartyOrder).where(PartyOrder.id.in_(party_ids)))
         await session.execute(delete(Order).where(Order.user_id == user.id))
         await session.delete(user)
         await session.commit()

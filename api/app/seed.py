@@ -45,6 +45,7 @@ OUTLETS = [
         "delivery_radius_km": 7,
         "fssai_number": "00000000000001",
         "is_open": True,
+        "accepts_party_orders": True,
         "min_prep_minutes": 25,
         "kitchen_capacity": 18,
     },
@@ -58,6 +59,7 @@ OUTLETS = [
         "delivery_radius_km": 8,
         "fssai_number": "00000000000002",
         "is_open": True,
+        "accepts_party_orders": True,
         "min_prep_minutes": 20,
         "kitchen_capacity": 30,
     },
@@ -71,6 +73,7 @@ OUTLETS = [
         "delivery_radius_km": 7,
         "fssai_number": "00000000000003",
         "is_open": True,
+        "accepts_party_orders": True,
         "min_prep_minutes": 30,
         "kitchen_capacity": 18,
     },
@@ -170,6 +173,7 @@ DEMO_USERS = [
     {"name": "Gachibowli Kitchen", "phone": "9000000012", "role": "kitchen", "outlet": "Gachibowli cloud kitchen", "password": "GachibowliKitchen!2026", "marketing_opt_in": False},
     {"name": "Kukatpally Kitchen", "phone": "9000000013", "role": "kitchen", "outlet": "Kukatpally", "password": "KukatpallyKitchen!2026", "marketing_opt_in": False},
     {"name": "Demo Admin", "phone": "9000000099", "role": "admin", "outlet": None, "password": "DemoAdmin!2026", "marketing_opt_in": False},
+    {"name": "Demo Catering Manager", "phone": "9000000014", "role": "catering", "outlet": None, "password": "DemoCatering!2026", "marketing_opt_in": False},
 ]
 
 RIDERS = [

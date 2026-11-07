@@ -28,7 +28,7 @@ function isUser(value: unknown): value is User {
     "phone" in value &&
     typeof value.id === "string" &&
     typeof value.phone === "string" &&
-    (value.role === "admin" || value.role === "kitchen" || value.role === "customer")
+    (value.role === "admin" || value.role === "kitchen" || value.role === "customer" || value.role === "catering")
   );
 }
 

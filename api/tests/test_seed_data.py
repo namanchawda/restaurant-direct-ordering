@@ -33,6 +33,7 @@ def test_seed_defines_required_outlets_and_menu() -> None:
         "customer": 1,
         "kitchen": 3,
         "admin": 1,
+        "catering": 1,
     }
     assert set(PHOTO_URLS) == {item[0] for item in MENU_ITEMS}
     assert len(set(PHOTO_URLS.values())) == len(MENU_ITEMS)
@@ -64,7 +65,8 @@ def test_database_constraints_cover_roles_statuses_and_price_ranges() -> None:
     assert {"outlets", "categories", "menu_items", "item_variants", "addons", "riders",
             "item_addons", "city_prices", "outlet_item_availability", "users",
             "orders", "order_items", "order_status_events", "loyalty_accounts",
-            "loyalty_transactions", "coupons", "coupon_redemptions"} == set(Base.metadata.tables)
+            "loyalty_transactions", "coupons", "coupon_redemptions", "party_orders",
+            "party_status_events"} == set(Base.metadata.tables)
     outlet_constraints = {
         constraint.name for constraint in Outlet.__table__.constraints
         if isinstance(constraint, CheckConstraint)

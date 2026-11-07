@@ -16,6 +16,8 @@ from app.models.models import (
     LoyaltyTransaction,
     Coupon,
     CouponRedemption,
+    PartyOrder,
+    PartyStatusEvent,
 )
 
 __all__ = [
@@ -36,4 +38,6 @@ __all__ = [
     "LoyaltyTransaction",
     "Coupon",
     "CouponRedemption",
+    "PartyOrder",
+    "PartyStatusEvent",
 ]

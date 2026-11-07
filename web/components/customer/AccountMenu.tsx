@@ -54,6 +54,9 @@ export function AccountMenu() {
           <Link role="menuitem" href="/rewards" onClick={() => setOpen(false)}>
             Rewards
           </Link>
+          <Link role="menuitem" href="/party/mine" onClick={() => setOpen(false)}>
+            Party orders
+          </Link>
           <button
             type="button"
             role="menuitem"

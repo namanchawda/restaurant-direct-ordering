@@ -97,7 +97,7 @@ async def login(
     user = await session.scalar(select(User).where(User.phone == payload.phone))
     if (
         user is None
-        or user.role not in {"kitchen", "admin"}
+        or user.role not in {"kitchen", "admin", "catering"}
         or user.password_hash is None
         or not bcrypt.checkpw(payload.password.encode(), user.password_hash.encode())
     ):

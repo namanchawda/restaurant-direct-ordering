@@ -22,6 +22,8 @@ function LoginForm() {
         return "This page is for admin accounts. Sign in with an admin phone and password.";
       case "role-kitchen-required":
         return "This page is for kitchen accounts. Sign in with a kitchen phone and password.";
+      case "role-catering-required":
+        return "This page is for catering managers. Sign in with a catering account.";
       case "session-expired":
         return "Your session expired. Sign in again to continue.";
       case "sign-in-required":
@@ -34,6 +36,7 @@ function LoginForm() {
   useEffect(() => {
     if (roleMismatch) return;
     if (user?.role === "admin") router.replace("/admin/menu");
+    if (user?.role === "catering") router.replace("/catering");
     if (user?.role === "kitchen") router.replace("/kitchen");
   }, [roleMismatch, router, user]);
 
@@ -43,7 +46,13 @@ function LoginForm() {
     setSubmitting(true);
     try {
       const signedInUser = await login(phone.trim(), password);
-      router.replace(signedInUser.role === "admin" ? "/admin/menu" : "/kitchen");
+      router.replace(
+        signedInUser.role === "admin"
+          ? "/admin/menu"
+          : signedInUser.role === "catering"
+            ? "/catering"
+            : "/kitchen",
+      );
     } catch (reason) {
       setError(
         reason instanceof ApiError

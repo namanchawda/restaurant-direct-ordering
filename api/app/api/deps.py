@@ -63,3 +63,13 @@ def require_role(role: str) -> Callable:
         return user
 
     return dependency
+
+
+def require_roles(*roles: str) -> Callable:
+    async def dependency(user: User = Depends(get_current_user)) -> User:
+        if user.role not in roles:
+            labels = "/".join(role.title() for role in roles)
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"{labels} role required.")
+        return user
+
+    return dependency

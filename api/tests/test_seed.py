@@ -116,7 +116,7 @@ async def test_seeded_outlets_menu_orders_and_users(
         users = (
             await session.scalars(select(User).where(User.phone.in_(expected_phones)))
         ).all()
-        assert len(users) == 5
+        assert len(users) == 6
         assert {user.phone: user.role for user in users} == {
             user["phone"]: user["role"] for user in DEMO_USERS
         }

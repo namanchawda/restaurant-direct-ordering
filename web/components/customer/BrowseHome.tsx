@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Button, Dialog, Skeleton, useToast } from "@/components/ui";
+import { AccountMenu } from "@/components/customer/AccountMenu";
 import { CartSummary } from "@/components/customer/CartSummary";
 import { MenuScreen } from "@/components/customer/MenuScreen";
 import { useCart } from "@/components/customer/CartProvider";
@@ -116,9 +118,24 @@ export function BrowseHome() {
 
   return (
     <main className="customer-page menu-page browse-home">
+      <header className="simple-page-header">
+        <div className="header-end">
+          <Link className="brand-lockup" href="/">
+            <span className="brand-mark" aria-hidden="true">H</span>
+            <span>Hyderabad Biryani</span>
+          </Link>
+          <AccountMenu />
+        </div>
+      </header>
       {loading && <div className="home-loading"><Skeleton className="home-loading-hero" /><Skeleton className="home-loading-line" /><Skeleton className="home-loading-line short" /></div>}
       {error && <div className="customer-error home-load-error" role="alert"><p>{error}</p><Button variant="secondary" onClick={() => setArea({ ...area })}>Try again</Button></div>}
-      {outlet && !error && <MenuScreen outletId={outlet.id} browseFirst deliveryArea={area} onChangeLocation={() => setLocationOpen(true)} onOpenCart={() => setCartOpen(true)} />}
+      {outlet && !error && <>
+        <section className="party-home-banner" aria-labelledby="party-home-heading">
+          <div><p className="eyebrow">Gather well</p><h1 id="party-home-heading">Planning a party?</h1><p>Order for 10 or more and let a catering manager confirm the details.</p></div>
+          <Link className="button button-primary" href="/party">Plan a party</Link>
+        </section>
+        <MenuScreen outletId={outlet.id} browseFirst deliveryArea={area} onChangeLocation={() => setLocationOpen(true)} onOpenCart={() => setCartOpen(true)} />
+      </>}
 
       <Dialog open={locationOpen} onOpenChange={setLocationOpen} title="Where should we deliver?" description="Choose an area or share your current location. You can keep browsing either way.">
         <div className="location-sheet">

@@ -11,7 +11,7 @@ if __package__ in (None, ""):
 from sqlalchemy import delete, select
 
 from app.db.session import get_session_factory
-from app.models import Category, MenuItem, Order, OrderItem, OrderStatusEvent, Outlet, User, LoyaltyAccount, LoyaltyTransaction
+from app.models import Category, MenuItem, Order, OrderItem, OrderStatusEvent, Outlet, PartyOrder, PartyStatusEvent, User, LoyaltyAccount, LoyaltyTransaction
 
 PHONE_PREFIX = "7000"
 
@@ -20,6 +20,10 @@ async def remove() -> None:
     async with get_session_factory()() as session:
         users = (await session.scalars(select(User).where(User.phone.like(f"{PHONE_PREFIX}%")))).all()
         user_ids = [user.id for user in users]
+        party_ids = list((await session.scalars(select(PartyOrder.id).where(PartyOrder.user_id.in_(user_ids)))).all()) if user_ids else []
+        if party_ids:
+            await session.execute(delete(PartyStatusEvent).where(PartyStatusEvent.party_order_id.in_(party_ids)))
+            await session.execute(delete(PartyOrder).where(PartyOrder.id.in_(party_ids)))
         await session.execute(delete(LoyaltyTransaction).where(LoyaltyTransaction.user_id.in_(user_ids)))
         await session.execute(delete(LoyaltyAccount).where(LoyaltyAccount.user_id.in_(user_ids)))
         await session.execute(delete(Order).where(Order.user_id.in_(user_ids)))

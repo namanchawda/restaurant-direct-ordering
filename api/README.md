@@ -46,6 +46,7 @@ credentials before deploying, and do not use them in production.
 | Kitchen — Gachibowli | `9000000012` | `GachibowliKitchen!2026` |
 | Kitchen — Kukatpally | `9000000013` | `KukatpallyKitchen!2026` |
 | Admin | `9000000099` | `DemoAdmin!2026` |
+| Catering manager | `9000000014` | `DemoCatering!2026` |
 
 Kitchen/admin passwords are stored as bcrypt hashes. All demo accounts have
 marketing opt-in disabled.

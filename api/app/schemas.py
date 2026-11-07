@@ -1,4 +1,4 @@
-from datetime import datetime, time
+from datetime import date, datetime, time
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -118,6 +118,45 @@ class StatusUpdate(APIModel):
         if self.status != "cancelled" and self.reason is not None:
             raise ValueError("A reason is only accepted when cancelling an order.")
         return self
+
+
+class PartyOrderItemInput(APIModel):
+    item_id: UUID
+    variant_id: UUID | None = None
+    quantity: Annotated[int, Field(ge=1, le=500)]
+
+
+class PartyOrderCreate(APIModel):
+    outlet_id: UUID
+    event_date: date
+    event_time: time
+    guests: Annotated[int, Field(ge=1, le=500)]
+    delivery_or_pickup: Literal["delivery", "pickup"]
+    address: Annotated[str | None, Field(default=None, min_length=5, max_length=500)] = None
+    contact_name: Annotated[str, Field(min_length=1, max_length=160)]
+    contact_phone: Annotated[str, Field(min_length=8, max_length=20)]
+    notes: Annotated[str | None, Field(default=None, max_length=2000)] = None
+    items: Annotated[list[PartyOrderItemInput], Field(min_length=1)]
+
+    @model_validator(mode="after")
+    def validate_address(self):
+        if self.delivery_or_pickup == "delivery" and not self.address:
+            raise ValueError("A delivery address is required for party delivery.")
+        return self
+
+
+class PartyQuoteRequest(APIModel):
+    outlet_id: UUID
+    items: Annotated[list[PartyOrderItemInput], Field(min_length=1)]
+
+
+class PartyConfirmRequest(APIModel):
+    manager_note: Annotated[str | None, Field(default=None, max_length=2000)] = None
+    adjusted_total_inr: Annotated[int | None, Field(default=None, ge=0)] = None
+
+
+class PartyRejectRequest(APIModel):
+    reason: Annotated[str, Field(min_length=1, max_length=2000)]
 
 
 class OverrideUpdate(APIModel):

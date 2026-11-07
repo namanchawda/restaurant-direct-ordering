@@ -10,7 +10,7 @@ npm run typecheck
 npm test
 ```
 
-Focused Node suites cover cart pricing/outlet changes, mocked payments, checkout state, kitchen transitions, live-event reconnect/resync behavior, and order-again suggestions. The browser axe pass uses installed `axe-core` through Playwright against an already-running app.
+Focused Node suites cover cart pricing/outlet changes, mocked payments, checkout state, kitchen transitions, live-event reconnect/resync behavior, order-again suggestions, party date/notice logic and guest limits (`test:party`), and catering order sorting and countdown logic (`test:catering`). The browser axe pass uses installed `axe-core` through Playwright against an already-running app.
 
 ## API
 
@@ -45,7 +45,42 @@ Relevant admin endpoints:
 - `POST /admin/coupons`
 - `PATCH /admin/coupons/{coupon_id}`
 
+## Party order endpoints
+
+Customer endpoints:
+
+- `POST /party-orders/quote` — items, `estimated_total_inr`, `advance_inr`, `minimum_total_inr`, `price_note` ("incl. 5% GST"); no side effects.
+- `POST /party-orders` — create a party order (customer role).
+- `GET /party-orders/mine` — list the customer's party orders.
+- `GET /party-orders/{public_id}` — one of the customer's party orders.
+- `POST /party-orders/{public_id}/pay-advance` — mocked UPI/card advance payment (confirmed orders only).
+- `POST /party-orders/{public_id}/cancel` — cancel when allowed.
+
+Catering manager endpoints (catering or admin role):
+
+- `GET /catering/party-orders?status=` — all party orders; newest requests first, soonest events first within Confirmed.
+- `PATCH /catering/party-orders/{public_id}/confirm` — confirm with `manager_note` and optional `adjusted_total_inr` (note required when the total changes).
+- `PATCH /catering/party-orders/{public_id}/reject` — reject with a required reason.
+- `PATCH /catering/party-orders/{public_id}/complete` — mark a confirmed order completed after the event.
+
+Party order rules covered by tests:
+
+- At least 24 hours notice; the date picker disables earlier slots.
+- 10 to 500 guests, up to 90 days ahead.
+- Rs 3,000 minimum estimated total.
+- Advance is 25% of the estimated total (mocked payment).
+- Statuses: `requested → confirmed → advance paid → completed`; cancel when allowed.
+
 Seeded demo coupons, marked `is_demo`: `WELCOME100`, `BIRYANI10`, `PARTY15`, and `FREESHIP`. Their seeded rules are Rs 100 off for a first order over Rs 399, 10% off up to Rs 120 over Rs 299, 15% off up to Rs 500 over Rs 1,500, and Rs 30 off over Rs 249, respectively.
+
+Demo login pointer (development only, from [api/README.md](../api/README.md)):
+
+| Role | Phone | Password |
+| --- | --- | --- |
+| Catering manager | `9000000014` | `DemoCatering!2026` |
+| Admin | `9000000099` | `DemoAdmin!2026` |
+
+Catering managers sign in at `/login` and are redirected to `/catering`; kitchen users visiting `/catering` are redirected back to login with a clear message.
 
 ## Load test
 

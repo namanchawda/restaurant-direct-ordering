@@ -149,7 +149,7 @@ export type User = {
   id: string;
   name: string | null;
   phone: string;
-  role: "admin" | "kitchen" | "customer";
+  role: "admin" | "kitchen" | "customer" | "catering";
   outlet_id: string | null;
   marketing_opt_in?: boolean;
 };

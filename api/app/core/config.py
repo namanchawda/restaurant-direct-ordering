@@ -27,6 +27,12 @@ class Settings(BaseSettings):
     kitchen_busy_queue_minutes: float = Field(default=10, gt=0)
     delivery_speed_kmh: float = Field(default=22, gt=0)
     delivery_sim_speed: float = Field(default=1, gt=0)
+    party_min_notice_hours: int = Field(default=24, ge=1)
+    party_max_days_ahead: int = Field(default=90, ge=1)
+    party_min_guests: int = Field(default=10, ge=1)
+    party_max_guests: int = Field(default=500, ge=1)
+    party_min_total_inr: int = Field(default=3000, ge=0)
+    party_advance_percent: int = Field(default=25, ge=0, le=100)
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
