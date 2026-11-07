@@ -1032,7 +1032,7 @@ button { color: inherit; }
 @media (prefers-reduced-motion: reduce) { .map-bike { transition: none; } }
 
 @media (max-width: 380px) {
-  .menu-item-card { gap: 6px; padding: 7px; }
+  .menu-item-card { gap: 6px; padding: 7px; position: relative;}
   .menu-item-main { grid-template-columns: 84px minmax(0, 1fr); gap: 8px; }
   .menu-item-photo { width: 84px; height: 96px; }
   .menu-item-name-row strong { font-size: 14px; }
@@ -1817,3 +1817,13 @@ button { color: inherit; }
   .catering-detail-dialog { width: calc(100vw - 24px); }
 }
 
+.menu-item-heart {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+}
+.menu-item-heart .heart-toggle {
+  min-width: 44px;
+  min-height: 44px;
+}
