@@ -1,14 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 /* Edit these two to change the sticker on the hero image. */
 const STICKER = { name: "Chicken dum biryani", price: "₹380" };
 const MARQUEE = ["Dum biryani", "Haleem", "Kebabs", "Free delivery over ₹499", "Earn points on every order", "Fresh from the dum pot"];
 
-/* Put your cutout photo (transparent PNG/WebP) at /public/images/biryani-bowl.png.
-   Until it exists, the illustrated handi below shows instead. */
-const BOWL_SRC = "/images/biryani-bowl.png";
+/* Transparent cutout at /public/images/hero-biryani.png. The illustrated handi shows if it fails to load. */
+const BOWL_SRC = "/images/hero-biryani.png";
 
 function Letters({ text, start }: { text: string; start: number }) {
   return (
@@ -64,7 +64,7 @@ export function HomeHero({ areaName, isOpen, outletName }: { areaName?: string; 
           <p className="hb-tagline">Bold masala.<br />Real dum.</p>
           <div className="hb-actions">
             <a className="hb-btn hb-btn-solid" href="#hb-menu">Order now</a>
-            <a className="hb-btn hb-btn-ghost" href="#hb-menu">See the menu</a>
+            <Link className="hb-btn hb-btn-ghost" href="/party">Plan a party</Link>
           </div>
           <p className="hb-status">
             <span className={`hb-dot${isOpen === false ? " hb-dot-closed" : ""}`} aria-hidden="true" />
@@ -84,6 +84,8 @@ export function HomeHero({ areaName, isOpen, outletName }: { areaName?: string; 
               <img ref={imageRef} src={BOWL_SRC} alt="Hyderabadi dum biryani" onError={() => setImageFailed(true)} />
             )}
           </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="hb-salan" src="/images/hero-salan.png" alt="Mirchi ka salan in a copper bowl" />
           <div className="hb-price" aria-label={`${STICKER.name}, ${STICKER.price}`}>
             <small>{STICKER.name}</small>
             <strong>{STICKER.price}</strong>

@@ -1,11 +1,10 @@
 /* Red + saffron theme for shared components. Save as src/components/customer/components-theme.css
    "body .x" is used on purpose so these rules win over the older plain ".x" rules. */
 :root {
-  --hb-red: #d6211f; --hb-red-deep: #a8100f; --hb-blush: #f8d9cf; --hb-cream: #fff1d6;
-  --hb-saffron: #ffc22e; --hb-ink: #2a0f0c;
-  --hb-display: "Bagel Fat One", "Chango", system-ui, sans-serif;
-  --hb-heavy: "Archivo Black", "Arial Black", system-ui, sans-serif;
-  --hb-hand: "Caveat", "Comic Sans MS", cursive;
+  --hb-red: var(--brand); --hb-red-deep: var(--brand-deep);
+  --hb-display: var(--font-bagel), system-ui, sans-serif;
+  --hb-heavy: var(--font-archivo-black), "Arial Black", system-ui, sans-serif;
+  --hb-hand: var(--font-caveat), "Comic Sans MS", cursive;
   --hb-pop: cubic-bezier(.3, 1.6, .5, 1);
 }
 

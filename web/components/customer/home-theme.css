@@ -1,15 +1,14 @@
-@import url("https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Archivo+Black&family=Caveat:wght@600&display=swap");
 
 .hb-themed {
-  --hb-red: #d6211f;
-  --hb-red-deep: #a8100f;
+  --hb-red: var(--brand);
+  --hb-red-deep: var(--brand-deep);
   --hb-blush: #f8d9cf;
   --hb-cream: #fff1d6;
   --hb-saffron: #ffc22e;
   --hb-ink: #2a0f0c;
-  --hb-display: "Bagel Fat One", "Chango", system-ui, sans-serif;
-  --hb-heavy: "Archivo Black", "Arial Black", system-ui, sans-serif;
-  --hb-hand: "Caveat", "Comic Sans MS", cursive;
+  --hb-display: var(--font-bagel), system-ui, sans-serif;
+  --hb-heavy: var(--font-archivo-black), "Arial Black", system-ui, sans-serif;
+  --hb-hand: var(--font-caveat), "Comic Sans MS", cursive;
 
   background-color: var(--hb-blush);
   /* outlined doodles: circle, star, crescent, chilli */
@@ -148,8 +147,8 @@
 .hb-themed .home-loading { padding: 16px 14px; }
 
 /* dialogs render in a portal, so these are not scoped */
-.location-dialog .location-dialog-header h2 { font-family: "Bagel Fat One", system-ui, sans-serif; font-weight: 400; color: #a8100f; }
-.location-dialog .location-dialog-script { font-family: "Caveat", cursive; color: #d6211f; }
+.location-dialog .location-dialog-header h2 { font-family: var(--font-bagel), system-ui, sans-serif; font-weight: 400; color: var(--brand-deep); }
+.location-dialog .location-dialog-script { font-family: var(--font-caveat), cursive; color: var(--brand); }
 .area-chip { border-radius: 999px; transition: transform .15s cubic-bezier(.3, 1.6, .5, 1); }
 .area-chip:hover { transform: translateY(-2px) rotate(-1deg); }
 .area-chip-selected { background: #d6211f; color: #fff1d6; border-color: #d6211f; }
@@ -164,14 +163,17 @@
   .hb-marquee { margin-inline: -28px; }
   .hb-menu-panel { margin-inline: 28px; }
 }
+.hb-salan { position: absolute; z-index: 3; right: -10%; bottom: -4%; width: 38%; height: auto; filter: drop-shadow(0 14px 14px rgba(60, 0, 0, .4)); animation: hb-float 6s ease-in-out 2.6s infinite; }
+
 @media (max-width: 480px) {
   .hb-note { display: none; }
   .hb-price { width: 82px; height: 82px; right: -2%; }
   .hb-badge { width: 84px; height: 84px; }
   .hb-badge text { font-size: 10px; }
+  .hb-salan { right: -4%; width: 34%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hb-themed, .hb-bowl, .hb-steam i, .hb-badge svg, .hb-marquee-track, .hb-dot { animation: none !important; }
+  .hb-themed, .hb-bowl, .hb-steam i, .hb-badge svg, .hb-marquee-track, .hb-dot, .hb-salan { animation: none !important; }
   .hb-word > span { animation: none !important; opacity: 1; transform: none; }
 }
