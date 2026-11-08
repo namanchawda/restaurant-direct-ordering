@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { KeyboardEvent } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import { Button, Card, Price, Skeleton, VegMark, useToast } from "@/components/ui";
-import { AccountMenu } from "@/components/customer/AccountMenu";
 import { CartSummary } from "@/components/customer/CartSummary";
+import { QuantityStepper } from "@/components/customer/QuantityStepper";
+import { SiteHeader } from "@/components/customer/SiteHeader";
 import { useCart } from "@/components/customer/CartProvider";
 import { FoodImage } from "@/components/customer/FoodImage";
 import { HeartToggle } from "@/components/customer/HeartToggle";
@@ -22,7 +23,6 @@ import { FREE_DELIVERY_THRESHOLD_INR } from "@/lib/checkout";
 import { formatINR, servedWindow } from "@/lib/customer";
 import type { MenuItem, OutletMenu } from "@/lib/customer";
 import { openOrderAgainItem } from "@/lib/order-suggestions";
-import type { DeliveryArea } from "@/lib/customer";
 
 type OrderSuggestion = {
   item_id: string;
@@ -53,29 +53,26 @@ function ItemCard({
   item,
   categoryAvailable,
   onOpen,
-  outletId,
   isFavourite,
   onToggleFavourite,
   priority = false,
+  outletId,
 }: {
   item: MenuItem;
   categoryAvailable: boolean;
   onOpen: (item: MenuItem) => void;
-  outletId: string;
   isFavourite: boolean;
   onToggleFavourite: () => void;
   priority?: boolean;
+  outletId: string;
 }) {
-  const { cart, addLine, setQuantity, removeLine } = useCart();
-  const simpleItem = item.variants.length === 0 && item.addons.length === 0;
-  const directLineId = cartLineIdentity(item.id, null, []);
-  const line = cart.lines.find((candidate) => candidate.id === directLineId);
   const available = categoryAvailable && item.available;
-
-  function addDirectly() {
-    if (!available) return;
-    addLine(outletId, makeCartLine(item, null, [], 1));
-  }
+  const { cart, addLine, setQuantity, removeLine } = useCart();
+  const toast = useToast();
+  const defaultVariantId = item.variants[0]?.id ?? null;
+  const defaultLineId = cartLineIdentity(item.id, defaultVariantId, []);
+  const itemLines = cart.lines.filter((line) => line.itemId === item.id);
+  const quantity = itemLines.reduce((total, line) => total + line.quantity, 0);
 
   function handleCardKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
     if (event.key === "Enter" || event.key === " ") {
@@ -84,7 +81,27 @@ function ItemCard({
     }
   }
 
-    return (
+  function handleAdd() {
+    addLine(outletId, makeCartLine(item, defaultVariantId, [], 1));
+    toast(`1 × ${item.name} added to cart.`, "success");
+  }
+
+  function handleIncrease() {
+    const defaultLine = itemLines.find((line) => line.id === defaultLineId);
+    if (defaultLine) setQuantity(defaultLineId, defaultLine.quantity + 1);
+    else handleAdd();
+  }
+
+  function handleDecrease() {
+    const target =
+      [...itemLines].reverse().find((line) => line.quantity > 1) ??
+      itemLines[itemLines.length - 1];
+    if (!target) return;
+    if (target.quantity > 1) setQuantity(target.id, target.quantity - 1);
+    else removeLine(target.id);
+  }
+
+  return (
     <Card className={`menu-item-card${!available ? " menu-item-unavailable" : ""}`}>
       <button
         type="button"
@@ -99,59 +116,44 @@ function ItemCard({
           isVeg={item.is_veg}
           className="menu-item-photo"
           priority={priority}
+          sizes="(max-width: 680px) 46vw, 230px"
         />
-        <span className="menu-item-copy">
-          <span className="menu-item-name-row">
-            <strong>{item.name}</strong>
-            <VegMark isVeg={item.is_veg} />
-          </span>
-          <span className="menu-item-description">{item.description}</span>
-          <span className="menu-item-meta">
-            <SpiceLevel level={item.spice_level} />
-            {available ? <Price amount={item.price} showGst={false} /> : (
-              <span className="unavailable-label">
-                {!categoryAvailable ? "Served later" : "Unavailable"}
-              </span>
-            )}
-          </span>
+        <span className="menu-item-name-row">
+          <strong>{item.name}</strong>
+          <VegMark isVeg={item.is_veg} />
         </span>
       </button>
       <div className="menu-item-heart">
         <HeartToggle itemId={item.id} isFavourite={isFavourite} onToggle={onToggleFavourite} />
       </div>
-      <div className="menu-item-action">
-        {/* keep your existing action block here, unchanged */}
+      <p className="menu-item-description">{item.description}</p>
+      <div className="menu-item-meta">
+        <SpiceLevel level={item.spice_level} />
+        {available ? (
+          <Price amount={item.price} showGst={false} />
+        ) : (
+          <span className="unavailable-label">
+            {!categoryAvailable ? "Served later" : "Unavailable"}
+          </span>
+        )}
       </div>
+      {available && (
+        <div className="menu-item-action">
+          {quantity > 0 ? (
+            <QuantityStepper
+              quantity={quantity}
+              label={`Quantity of ${item.name}`}
+              onDecrease={handleDecrease}
+              onIncrease={handleIncrease}
+            />
+          ) : (
+            <Button variant="primary" className="menu-add-button" onClick={handleAdd}>
+              Add to Cart +
+            </Button>
+          )}
+        </div>
+      )}
     </Card>
-  );
-}
-
-export function QuantityStepper({
-  quantity,
-  label,
-  onDecrease,
-  onIncrease,
-}: {
-  quantity: number;
-  label: string;
-  onDecrease: () => void;
-  onIncrease: () => void;
-}) {
-  return (
-    <div className="quantity-stepper" aria-label={label}>
-      <button type="button" aria-label={`Decrease ${label}`} onClick={onDecrease}>
-        −
-      </button>
-      <span aria-live="polite">{quantity}</span>
-      <button
-        type="button"
-        aria-label={`Increase ${label}`}
-        onClick={onIncrease}
-        disabled={quantity >= 20}
-      >
-        +
-      </button>
-    </div>
   );
 }
 
@@ -331,15 +333,17 @@ function MenuSkeleton() {
 export function MenuScreen({
   outletId,
   browseFirst = false,
-  deliveryArea,
-  onChangeLocation,
   onOpenCart,
+  search: searchProp,
+  onSearch,
+  favouritesSection,
 }: {
   outletId: string;
   browseFirst?: boolean;
-  deliveryArea?: DeliveryArea;
-  onChangeLocation?: () => void;
   onOpenCart?: () => void;
+  search?: string;
+  onSearch?: (value: string) => void;
+  favouritesSection?: ReactNode;
 }) {
   const toast = useToast();
   const { cart, hydrated, revalidate } = useCart();
@@ -349,7 +353,9 @@ export function MenuScreen({
   const [error, setError] = useState<string | null>(null);
   const [requestVersion, setRequestVersion] = useState(0);
   const [vegOnly, setVegOnly] = useState(false);
-  const [search, setSearch] = useState("");
+  const [ownSearch, setOwnSearch] = useState("");
+  const search = searchProp ?? ownSearch;
+  const setSearch = onSearch ?? setOwnSearch;
   const [activeCategory, setActiveCategory] = useState("");
   const [activeItem, setActiveItem] = useState<MenuItem | null>(null);
   const [suggestionResult, setSuggestionResult] = useState<{
@@ -494,6 +500,13 @@ export function MenuScreen({
     });
   }
 
+  function scrollToMenu() {
+    document.getElementById("menu-section")?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      block: "start",
+    });
+  }
+
   const availableItemCount = menu?.categories.reduce(
     (count, category) =>
       count + (category.available_now ? category.items.filter((item) => item.available).length : 0),
@@ -511,73 +524,169 @@ export function MenuScreen({
     .map((suggestion) => menuItems.find((item) => item.id === suggestion.item_id))
     .filter((item): item is MenuItem => Boolean(item?.available));
 
+  const orderAgainBlock = (
+    <>
+      {orderAgainItems.length > 0 && (
+        <section className="order-again" aria-labelledby="order-again-heading">
+          <div className="home-row-heading">
+            <p className="customer-eyebrow">From your order history</p>
+            <h2 id="order-again-heading">Order again</h2>
+          </div>
+          <div className="order-again-list">
+            {orderAgainItems.map((item) => (
+              <article className="dish-row-card" key={item.id}>
+                <button
+                  type="button"
+                  className="dish-row-main"
+                  onClick={() => openOrderAgainItem(item, setActiveItem)}
+                  aria-label={`View ${item.name} details`}
+                >
+                  <FoodImage
+                    src={item.photo_url}
+                    name={item.name}
+                    isVeg={item.is_veg}
+                    className="dish-row-photo"
+                    sizes="72px"
+                  />
+                  <span className="dish-row-copy">
+                    <strong>{item.name}</strong>
+                    <span>{formatINR(item.price)}</span>
+                  </span>
+                </button>
+                <HeartToggle
+                  itemId={item.id}
+                  isFavourite={favouriteIds.has(item.id)}
+                  onToggle={() => toggleFavourite(item.id)}
+                />
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+      {suggestionError && (
+        <div className="order-again-error" role="alert">
+          <span>{suggestionError}</span>
+          <button
+            type="button"
+            onClick={() => setSuggestionRequestVersion((version) => version + 1)}
+          >
+            Try again
+          </button>
+        </div>
+      )}
+    </>
+  );
+
   return (
     <main className="customer-page menu-page">
       {menu && (
         <>
-          <header className="menu-header">
-            <div className="menu-header-main">
-              <Link className="brand-lockup" href="/">
-                <span className="brand-mark" aria-hidden="true">H</span>
-                <span>Hyderabad Biryani</span>
-              </Link>
-              <div className="menu-header-actions">
-                {browseFirst && deliveryArea && (
-                  <button type="button" className="location-chip" onClick={onChangeLocation}>
-                    <span aria-hidden="true">⌖</span> Delivering to {deliveryArea.name}, Hyderabad <u>Change</u>
-                  </button>
-                )}
-                {!browseFirst && <div className="menu-outlet-title"><p className="customer-eyebrow">Fresh from the kitchen</p><h1>{menu.outlet.name}</h1></div>}
-                {browseFirst && <label className="header-search"><span aria-hidden="true">⌕</span><span className="sr-only">Search menu</span><input type="search" placeholder="Search dishes" value={search} onChange={(event) => setSearch(event.target.value)} /></label>}
-                <span className={`outlet-status ${menu.outlet.is_open ? "is-open" : "is-closed"}`}>
-                  <span aria-hidden="true" />
-                  {menu.outlet.is_open ? "Open now" : "Closed"}
-                </span>
-                <AccountMenu />
-                <button type="button" className="header-cart-button" onClick={onOpenCart} aria-label={`Open cart, ${cartItemCount(cart.lines)} items`}>
-                  <span aria-hidden="true">🛒</span><span className="header-cart-count">{cartItemCount(cart.lines)}</span>
-                </button>
-                {!browseFirst && <Link className="change-link" href="/?change=1">Change</Link>}
-              </div>
-            </div>
-            {!browseFirst && <p className="menu-header-details">
-              FSSAI {menu.outlet.fssai_number}
-              {menu.outlet.type === "cloud_kitchen" && <span className="cloud-kitchen-label">Cloud kitchen</span>}
-            </p>}
+          {!browseFirst && (
+            <SiteHeader onOpenCart={onOpenCart} search={search} onSearch={setSearch} />
+          )}
+          <div className="menu-header">
+            {!browseFirst && (
+              <>
+                <div className="menu-header-main">
+                  <div className="menu-outlet-title"><p className="customer-eyebrow">Fresh from the kitchen</p><h1>{menu.outlet.name}</h1></div>
+                  <div className="menu-header-actions">
+                    <span className={`outlet-status ${menu.outlet.is_open ? "is-open" : "is-closed"}`}>
+                      <span aria-hidden="true" />
+                      {menu.outlet.is_open ? "Open now" : "Closed"}
+                    </span>
+                    <Link className="change-link" href="/?change=1">Change</Link>
+                  </div>
+                </div>
+                <p className="menu-header-details">
+                  FSSAI {menu.outlet.fssai_number}
+                  {menu.outlet.type === "cloud_kitchen" && <span className="cloud-kitchen-label">Cloud kitchen</span>}
+                </p>
+              </>
+            )}
             <p className="menu-gst-note">All menu prices {menu.price_note}</p>
-          </header>
+          </div>
 
           {browseFirst && (
             <section className="home-hero" aria-labelledby="home-hero-title">
+              <div className="home-hero-visual pattern-bg">
+                <div className="home-hero-photo-main">
+                  <FoodImage
+                    src={menuItems[0]?.photo_url ?? ""}
+                    name={menuItems[0]?.name ?? "Hyderabadi food"}
+                    isVeg={menuItems[0]?.is_veg ?? false}
+                    className="home-hero-photo"
+                    priority
+                    sizes="(max-width: 860px) 60vw, 30vw"
+                  />
+                  {menuItems[1] && (
+                    <div className="home-hero-photo-thumb">
+                      <FoodImage
+                        src={menuItems[1].photo_url}
+                        name={menuItems[1].name}
+                        isVeg={menuItems[1].is_veg}
+                        className="home-hero-thumb-photo"
+                        sizes="120px"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
               <div className="home-hero-copy">
                 <p className="customer-eyebrow">Fresh from {menu.outlet.name}</p>
-                <h1 id="home-hero-title">Biryani worth coming back for.</h1>
-                <p>Slow-cooked classics and Hyderabadi favourites, made to travel well.</p>
+                <h1 id="home-hero-title">
+                  <span className="script">Signature</span>
+                  <span className="home-hero-title-line">Hyderabadi Biryani</span>
+                </h1>
+                <p>Fragrant basmati rice, marinated meat and authentic spices, dum-cooked to perfection.</p>
                 <div className="home-hero-actions">
-                  <Button variant="primary" onClick={() => document.getElementById("menu-section")?.scrollIntoView({ behavior: "smooth" })}>Order now</Button>
+                  <Button variant="primary" className="home-hero-order" onClick={scrollToMenu}>
+                    Order now <span aria-hidden="true">→</span>
+                  </Button>
                   <span className={`hero-delivery ${menu.outlet.is_open ? "is-open" : "is-closed"}`}>
                     <span aria-hidden="true">●</span> {menu.outlet.is_open ? "Open now · Delivery in about 35 min" : "Closed now · Order when we open"}
                   </span>
                 </div>
               </div>
-              <FoodImage src={menuItems[0]?.photo_url ?? ""} name={menuItems[0]?.name ?? "Hyderabadi food"} isVeg={menuItems[0]?.is_veg ?? false} className="home-hero-photo" priority />
+              <span className="home-hero-edge" aria-hidden="true" />
             </section>
           )}
 
           {browseFirst && (
             <section className="home-discovery" aria-label="Discover the menu">
-              <div className="home-section-heading"><div><p className="customer-eyebrow">Start with a favourite</p><h2>What are you craving?</h2></div></div>
-              <div className="category-photo-row">
-                {menu.categories.map((category) => {
-                  const item = category.items[0];
-                  return item ? <button className="category-photo-tile" type="button" key={category.id} onClick={() => jumpToCategory(category.id)}><FoodImage src={item.photo_url} name={category.name} isVeg={item.is_veg} className="category-photo" /><strong>{category.name}</strong></button> : null;
-                })}
+              <nav className="home-chips" aria-label="Categories">
+                {menu.categories.map((category) => (
+                  <button
+                    type="button"
+                    key={category.id}
+                    className={activeCategory === category.id ? "home-chip is-active" : "home-chip"}
+                    onClick={() => jumpToCategory(category.id)}
+                    aria-current={activeCategory === category.id ? "location" : undefined}
+                  >
+                    {category.name}
+                  </button>
+                ))}
+              </nav>
+              <div className="home-promo-strip">
+                <div className="home-promo-card home-promo-party">
+                  <div className="home-promo-party-copy">
+                    <p className="customer-eyebrow">Gather well</p>
+                    <h2>Planning a party?</h2>
+                    <p>Order for 10 or more and let a catering manager confirm the details.</p>
+                  </div>
+                  <Link className="button button-primary" href="/party">Plan a party</Link>
+                </div>
+                <div className="home-promo-card home-promo-perks">
+                  <div className="home-promo-perks-copy">
+                    <span className="home-promo-pill">Since 2023</span>
+                    <p>Free delivery over Rs {FREE_DELIVERY_THRESHOLD_INR} · Earn points on every direct order · Coupons at checkout</p>
+                  </div>
+                  <button type="button" className="home-promo-order" onClick={scrollToMenu}>
+                    Order now
+                  </button>
+                </div>
               </div>
-              <div className="offers-strip">
-                <span aria-hidden="true">✦</span>
-                <strong>Good food, made direct</strong>
-                <span>Free delivery over Rs {FREE_DELIVERY_THRESHOLD_INR} · Earn points on every direct order · Coupons at checkout</span>
-              </div>
+              {favouritesSection}
+              {orderAgainBlock}
             </section>
           )}
 
@@ -619,50 +728,7 @@ export function MenuScreen({
               ))}
             </nav>
           )}
-          {orderAgainItems.length > 0 && (
-            <section className="order-again" aria-labelledby="order-again-heading">
-              <div className="order-again-heading">
-                <div>
-                  <p className="customer-eyebrow">From your order history</p>
-                  <h2 id="order-again-heading">Order again</h2>
-                </div>
-              </div>
-              <div className="order-again-list">
-                {orderAgainItems.map((item) => (
-                  <button
-                    className="order-again-item"
-                    key={item.id}
-                    type="button"
-                    onClick={() => openOrderAgainItem(item, setActiveItem)}
-                    aria-label={`View ${item.name} details`}
-                  >
-                    <FoodImage
-                      src={item.photo_url}
-                      name={item.name}
-                      isVeg={item.is_veg}
-                      className="order-again-photo"
-                    />
-                    <span className="order-again-copy">
-                      <strong>{item.name}</strong>
-                      <span>{formatINR(item.price)}</span>
-                    </span>
-                    <span className="order-again-action">View</span>
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
-          {suggestionError && (
-            <div className="order-again-error" role="alert">
-              <span>{suggestionError}</span>
-              <button
-                type="button"
-                onClick={() => setSuggestionRequestVersion((version) => version + 1)}
-              >
-                Try again
-              </button>
-            </div>
-          )}
+          {!browseFirst && orderAgainBlock}
         </>
       )}
 
@@ -722,11 +788,11 @@ export function MenuScreen({
                     key={item.id}
                     item={item}
                     categoryAvailable={category.available_now && menu.outlet.is_open}
-                    outletId={outletId}
                     onOpen={setActiveItem}
                     isFavourite={favouriteIds.has(item.id)}
                     onToggleFavourite={() => toggleFavourite(item.id)}
                     priority={categoryIndex === 0 && item.id === category.items[0]?.id}
+                    outletId={outletId}
                   />
                 ))}
               </div>

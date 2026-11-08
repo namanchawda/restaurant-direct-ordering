@@ -1,22 +1,27 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { Button, Dialog, Skeleton, useToast } from "@/components/ui";
-import { AccountMenu } from "@/components/customer/AccountMenu";
 import { CartSummary } from "@/components/customer/CartSummary";
-import { FavouriteCard } from "@/components/customer/FavouriteCard";
+import { FoodImage } from "@/components/customer/FoodImage";
+import { HeartToggle } from "@/components/customer/HeartToggle";
 import { MenuScreen } from "@/components/customer/MenuScreen";
+import { SiteHeader } from "@/components/customer/SiteHeader";
 import { useCart } from "@/components/customer/CartProvider";
 import { api, describeApiError, listFavourites, removeFavourite } from "@/lib/api";
 import {
   HYDERABAD_AREAS,
   LOCATION_STORAGE_KEY,
   OUTLET_STORAGE_KEY,
+  formatINR,
 } from "@/lib/customer";
 import type { DeliveryArea, OutletResult } from "@/lib/customer";
 import { selectDefaultOutlet } from "@/lib/outlet-selection";
 import { useAuth } from "@/lib/auth";
+import { useSignIn } from "@/components/auth/SignInProvider";
+import { shouldShowWelcome } from "@/lib/welcome";
+
+const WELCOME_SEEN_KEY = "hyderabad-biryani-welcome-seen";
 
 function savedArea(): DeliveryArea {
   if (typeof window !== "undefined") {
@@ -46,17 +51,42 @@ export function BrowseHome() {
   const [pendingOutlet, setPendingOutlet] = useState<OutletResult | null>(null);
   const [locating, setLocating] = useState(false);
   const { user, ready: authReady } = useAuth();
+  const { openSignIn } = useSignIn();
+  const [welcome, setWelcome] = useState(false);
+  const [areaQuery, setAreaQuery] = useState("");
+  const [search, setSearch] = useState("");
   const [favourites, setFavourites] = useState<{ item_id: string; name: string; photo_url: string | null; price_inr: number; is_veg: boolean }[]>([]);
+
+  function markWelcomeSeen() { window.localStorage.setItem(WELCOME_SEEN_KEY, "1"); setWelcome(false); }
+
+  function closeLocation() {
+    setLocationOpen(false);
+    if (welcome) markWelcomeSeen();
+  }
 
   useEffect(() => { cartRef.current = cart; }, [cart]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
+      const locationStored = !!window.localStorage.getItem(LOCATION_STORAGE_KEY);
+      const welcomeSeen = !!window.localStorage.getItem(WELCOME_SEEN_KEY);
+      const firstVisit = shouldShowWelcome(locationStored, welcomeSeen);
       setArea(savedArea());
       setAreaReady(true);
+      if (firstVisit) { setWelcome(true); setLocationOpen(true); }
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (welcome && authReady && user && user.role !== "customer") {
+      const handle = window.setTimeout(() => {
+        setLocationOpen(false);
+        markWelcomeSeen();
+      }, 0);
+      return () => window.clearTimeout(handle);
+    }
+  }, [welcome, authReady, user]);
 
   useEffect(() => {
     if (!areaReady) return;
@@ -95,6 +125,7 @@ export function BrowseHome() {
   }, [authReady, user]);
 
   function chooseArea(nextArea: DeliveryArea) {
+    if (welcome) markWelcomeSeen();
     setArea(nextArea);
     setLocationOpen(false);
   }
@@ -131,50 +162,97 @@ export function BrowseHome() {
     chooseArea(nextArea);
   };
 
+  const filteredAreas = HYDERABAD_AREAS.filter((candidate) => candidate.name.toLowerCase().includes(areaQuery.trim().toLowerCase()));
+
+  const favouritesSection = favourites.length > 0 ? (
+    <section className="home-favourites-section" aria-labelledby="home-favourites-heading">
+      <div className="home-row-heading">
+        <p className="customer-eyebrow">Saved for later</p>
+        <h2 id="home-favourites-heading">Your favourites</h2>
+      </div>
+      <div className="home-favourite-scroll" role="list" aria-label="Your favourite dishes">
+        {favourites.map((favourite) => (
+          <article className="dish-row-card" role="listitem" key={favourite.item_id}>
+            <div className="dish-row-main">
+              {favourite.photo_url ? (
+                <FoodImage
+                  src={favourite.photo_url}
+                  name={favourite.name}
+                  isVeg={favourite.is_veg}
+                  className="dish-row-photo"
+                  sizes="72px"
+                />
+              ) : (
+                <span className="dish-row-photo dish-row-photo-empty" aria-hidden="true" />
+              )}
+              <span className="dish-row-copy">
+                <strong>{favourite.name}</strong>
+                <span>{formatINR(favourite.price_inr)}</span>
+              </span>
+            </div>
+            <HeartToggle
+              itemId={favourite.item_id}
+              isFavourite
+              onToggle={() => {
+                setFavourites((current) => current.filter((item) => item.item_id !== favourite.item_id));
+                void removeFavourite(favourite.item_id).catch(() => {
+                  void listFavourites().then((updated) => setFavourites(updated)).catch(() => undefined);
+                });
+              }}
+            />
+          </article>
+        ))}
+      </div>
+    </section>
+  ) : null;
+
   return (
     <main className="customer-page menu-page browse-home">
-      <header className="simple-page-header">
-        <div className="header-end">
-          <Link className="brand-lockup" href="/">
-            <span className="brand-mark" aria-hidden="true">H</span>
-            <span>Hyderabad Biryani</span>
-          </Link>
-          <AccountMenu />
-        </div>
-      </header>
+      <SiteHeader
+        area={areaReady ? area : undefined}
+        onChangeLocation={() => setLocationOpen(true)}
+        onOpenCart={() => setCartOpen(true)}
+        search={search}
+        onSearch={setSearch}
+      />
       {loading && <div className="home-loading"><Skeleton className="home-loading-hero" /><Skeleton className="home-loading-line" /><Skeleton className="home-loading-line short" /></div>}
       {error && <div className="customer-error home-load-error" role="alert"><p>{error}</p><Button variant="secondary" onClick={() => setArea({ ...area })}>Try again</Button></div>}
-      {outlet && !error && <>
-        <section className="party-home-banner" aria-labelledby="party-home-heading">
-          <div><p className="eyebrow">Gather well</p><h1 id="party-home-heading">Planning a party?</h1><p>Order for 10 or more and let a catering manager confirm the details.</p></div>
-          <Link className="button button-primary" href="/party">Plan a party</Link>
-        </section>
-        {favourites.length > 0 && (
-          <section className="home-favourites-section" aria-labelledby="home-favourites-heading">
-            <div><p className="customer-eyebrow">Your favourites</p><h2 id="home-favourites-heading">Your favourites</h2></div>
-            <div className="home-favourite-scroll" role="list" aria-label="Your favourite dishes">
-              {favourites.map((favourite) => (
-                <FavouriteCard key={favourite.item_id} favourite={favourite} onRemove={(itemId) => {
-                  setFavourites((current) => current.filter((item) => item.item_id !== itemId));
-                  void removeFavourite(itemId).catch(() => {
-                    void listFavourites().then((updated) => setFavourites(updated)).catch(() => undefined);
-                  });
-                }} />
-              ))}
-            </div>
-          </section>
-        )}
-        <MenuScreen outletId={outlet.id} browseFirst deliveryArea={area} onChangeLocation={() => setLocationOpen(true)} onOpenCart={() => setCartOpen(true)} />
-      </>}
+      {outlet && !error && (
+        <MenuScreen
+          outletId={outlet.id}
+          browseFirst
+          onOpenCart={() => setCartOpen(true)}
+          search={search}
+          onSearch={setSearch}
+          favouritesSection={favouritesSection}
+        />
+      )}
 
-      <Dialog open={locationOpen} onOpenChange={setLocationOpen} title="Where should we deliver?" description="Choose an area or share your current location. You can keep browsing either way.">
+      <Dialog
+        open={locationOpen}
+        onOpenChange={(open) => { if (open) setLocationOpen(true); else closeLocation(); }}
+        title={welcome ? "Welcome! Where should we deliver?" : "Where should we deliver?"}
+        className="location-dialog"
+        header={(titleId) => (
+          <header className="location-dialog-header">
+            <div className="location-dialog-header-copy" id={titleId}>
+              {welcome && <span className="location-dialog-script">Welcome</span>}
+              <h2>Where should we deliver?</h2>
+            </div>
+            <button type="button" className="location-dialog-close" aria-label="Close dialog" onClick={closeLocation}>×</button>
+          </header>
+        )}
+      >
         <div className="location-sheet">
           <Button variant="primary" onClick={useCurrentLocation} disabled={locating}>{locating ? "Finding your location…" : "Use my current location"}</Button>
+          <label className="field"><span className="sr-only">Search areas</span><input type="search" className="location-search" placeholder="Search your area" value={areaQuery} onChange={(event) => setAreaQuery(event.target.value)} /></label>
           <p className="location-sheet-label">Hyderabad areas</p>
           <div className="area-list" aria-label="Choose a Hyderabad area">
-            {HYDERABAD_AREAS.map((candidate) => <button type="button" className={`area-chip${candidate.name === area.name ? " area-chip-selected" : ""}`} key={candidate.name} onClick={() => selectLocation(candidate)}>{candidate.name}</button>)}
+            {filteredAreas.map((candidate) => <button type="button" className={`area-chip${candidate.name === area.name ? " area-chip-selected" : ""}`} key={candidate.name} onClick={() => selectLocation(candidate)}>{candidate.name}</button>)}
+            {filteredAreas.length === 0 && <p className="signin-hint">No area matches. Try another name.</p>}
           </div>
           {outlets.length > 1 && <div className="location-outlet-list"><p className="location-sheet-label">Available kitchens nearby</p>{outlets.slice(0, 4).map((candidate) => <button type="button" className="location-outlet-row" key={candidate.id} onClick={() => { selectOutlet(candidate); setLocationOpen(false); }}><span><strong>{candidate.name}</strong><small>{candidate.address}</small></span><span className={candidate.is_open ? "delivery-ok" : "delivery-out"}>{candidate.is_open ? "Open" : "Closed"}</span></button>)}</div>}
+          {!user && <p className="signin-hint location-signin">Already ordered before? <button type="button" className="checkout-text-link" onClick={() => { closeLocation(); openSignIn({ mode: "customer" }); }}>Sign in</button></p>}
         </div>
       </Dialog>
 

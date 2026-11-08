@@ -17,6 +17,7 @@ import {
 } from "@/components/ui";
 import { AccountMenu } from "@/components/customer/AccountMenu";
 import { useCart } from "@/components/customer/CartProvider";
+import { useSignIn } from "@/components/auth/SignInProvider";
 import { api, ApiError, CustomerAddress, createAddress, describeApiError, listAddresses } from "@/lib/api";
 import {
   cartItemCount,
@@ -48,7 +49,6 @@ import {
 } from "@/lib/unpaid-order";
 import { useAuth } from "@/lib/auth";
 
-type AuthStage = "phone" | "otp" | "name";
 type FieldErrors = Record<string, string>;
 type CouponOffer = {
   code: string;
@@ -92,20 +92,6 @@ function readSavedLocation(): DeliveryArea | null {
   }
 }
 
-function otpMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    if (error.status === 429) {
-      return "Too many codes requested. Please wait a few minutes and try again.";
-    }
-    if (error.status === 401) {
-      return "That code is incorrect or has expired. Check it and try again.";
-    }
-    if (error.status === 409) return error.message;
-    return error.message;
-  }
-  return "We couldn’t reach the service. Check your connection and try again.";
-}
-
 function checkoutMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message;
   return "We couldn’t reach the service. Check your connection and try again.";
@@ -122,7 +108,8 @@ export function CheckoutScreen() {
   const router = useRouter();
   const toast = useToast();
   const { cart, hydrated, clearCart } = useCart();
-  const { user, ready, requestOtp, verifyOtp, logout } = useAuth();
+  const { user, ready, logout } = useAuth();
+  const { openSignIn } = useSignIn();
 
   const [outlet, setOutlet] = useState<OutletResult | null>(null);
   const [loadedOutletKey, setLoadedOutletKey] = useState("");
@@ -136,17 +123,6 @@ export function CheckoutScreen() {
   const [saveNewAddress, setSaveNewAddress] = useState(false);
   const [newAddressLabel, setNewAddressLabel] = useState<string>("home");
   const [locating, setLocating] = useState(false);
-
-  const [authStage, setAuthStage] = useState<AuthStage>("phone");
-  const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
-  const [name, setName] = useState("");
-  const [marketing, setMarketing] = useState(false);
-  const [nameStage, setNameStage] = useState(false);
-  const [authBusy, setAuthBusy] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [resendIn, setResendIn] = useState(0);
-  const otpRef = useRef("");
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("upi");
   const [upiId, setUpiId] = useState("");
@@ -168,12 +144,18 @@ export function CheckoutScreen() {
   const [loyalty, setLoyalty] = useState<{ balance_points: number; value_inr: number } | null>(null);
   const [quote, setQuote] = useState<{ items_subtotal_inr: number; coupon_discount_inr: number; points_discount_inr: number; delivery_fee_inr: number; total_inr: number; earn_points: number } | null>(null);
   const submittingRef = useRef(false);
+  const signInPromptedRef = useRef(false);
   const orderCreator = useRef(new SingleFlightOrderCreator<Order>());
 
-  const phoneDigits = phone.replace(/\D+/g, "").slice(0, 10);
   const isSignedInCustomer = user?.role === "customer";
   const outletRequestKey = cart.outletId ? `${cart.outletId}:${outletAttempt}` : "";
   const outletLoading = Boolean(cart.outletId) && loadedOutletKey !== outletRequestKey;
+
+  useEffect(() => {
+    if (!ready || !hydrated || cart.lines.length === 0 || isSignedInCustomer || signInPromptedRef.current) return;
+    signInPromptedRef.current = true;
+    openSignIn({ mode: "customer" });
+  }, [ready, hydrated, cart.lines.length, isSignedInCustomer, openSignIn]);
 
   useEffect(() => {
     if (!isSignedInCustomer) return;
@@ -304,101 +286,6 @@ export function CheckoutScreen() {
     };
   }, [user, outlet]);
 
-  useEffect(() => {
-    if (resendIn <= 0) return;
-    const timer = window.setTimeout(() => setResendIn((value) => Math.max(0, value - 1)), 1000);
-    return () => window.clearTimeout(timer);
-  }, [resendIn]);
-
-  useEffect(() => {
-    if (authStage !== "otp" || otp.length !== 6 || authBusy) return;
-    if (otpRef.current === otp) return;
-    otpRef.current = otp;
-    void submitOtp(otp);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authStage, authBusy, otp]);
-
-  function resetAuth(nextPhone = "") {
-    setAuthStage("phone");
-    setOtp("");
-    setName("");
-    setMarketing(false);
-    setNameStage(false);
-    setAuthError(null);
-    setResendIn(0);
-    setPhone(nextPhone);
-    otpRef.current = "";
-  }
-
-  async function sendOtp(event?: FormEvent<HTMLFormElement>) {
-    event?.preventDefault();
-    if (authBusy) return;
-    if (phoneDigits.length !== 10) {
-      setAuthError("Enter a 10-digit mobile number.");
-      return;
-    }
-    setAuthBusy(true);
-    setAuthError(null);
-    try {
-      await requestOtp(phoneDigits);
-      setPhone(phoneDigits);
-      setAuthStage("otp");
-      setOtp("");
-      otpRef.current = "";
-      setResendIn(30);
-    } catch (error) {
-      setAuthError(otpMessage(error));
-    } finally {
-      setAuthBusy(false);
-    }
-  }
-
-  async function submitOtp(code: string) {
-    if (authBusy) return;
-    setAuthBusy(true);
-    setAuthError(null);
-    try {
-      const signedInUser = await verifyOtp(phoneDigits, code);
-      if (!signedInUser.name || signedInUser.name.trim().toLowerCase() === "customer") {
-        setNameStage(true);
-        setAuthStage("name");
-        setName("");
-        setMarketing(false);
-      } else {
-        setNameStage(false);
-        setAuthStage("phone");
-      }
-    } catch (error) {
-      setAuthError(otpMessage(error));
-    } finally {
-      setAuthBusy(false);
-    }
-  }
-
-  async function submitName(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (authBusy) return;
-    const trimmed = name.trim();
-    if (!trimmed) {
-      setAuthError("Enter the name the rider should ask for.");
-      return;
-    }
-    setAuthBusy(true);
-    setAuthError(null);
-    try {
-      await verifyOtp(phoneDigits, otp, {
-        name: trimmed,
-        marketingOptIn: marketing,
-      });
-      setNameStage(false);
-      setAuthStage("phone");
-    } catch (error) {
-      setAuthError(otpMessage(error));
-    } finally {
-      setAuthBusy(false);
-    }
-  }
-
   function applyCouponChip(code: string) {
     setAppliedCoupon(code);
     setCouponCode(code);
@@ -412,12 +299,12 @@ export function CheckoutScreen() {
   }
 
   function changeContact() {
-    resetAuth(user?.phone ?? "");
     setOrder(null);
     setRestoredOrder(false);
     setPriceChanged(false);
     setFormError(null);
     logout();
+    openSignIn({ mode: "customer" });
   }
 
   async function cancelUnpaidOrder() {
@@ -639,161 +526,14 @@ export function CheckoutScreen() {
       ? deliveryDistance > outlet.delivery_radius_km
       : false;
   const signedInCustomer = user?.role === "customer";
-  const staffSignedIn = Boolean(user && user.role !== "customer");
 
   function renderAuth() {
-    if (staffSignedIn) {
-      return (
-        <Card className="checkout-card checkout-auth-card">
-          <p className="checkout-step-label">Customer checkout</p>
-          <h2>Sign out of the staff account</h2>
-          <p className="checkout-card-copy">
-            Staff accounts can’t place customer orders. Sign out, then continue with your phone
-            number.
-          </p>
-          <Button
-            variant="primary"
-            onClick={() => {
-              logout();
-              resetAuth();
-            }}
-          >
-            Sign out to order
-          </Button>
-        </Card>
-      );
-    }
-
-    if (nameStage && user) {
-      return (
-        <Card className="checkout-card checkout-auth-card">
-          <p className="checkout-step-label">Almost done</p>
-          <h2>What should we call you?</h2>
-          <p className="checkout-card-copy">
-            We’ll share this name with the kitchen and rider.
-          </p>
-          <form className="checkout-auth-form" onSubmit={submitName}>
-            <label className="field">
-              <span>Your name</span>
-              <Input
-                autoFocus
-                autoComplete="name"
-                id="checkout-name"
-                maxLength={160}
-                name="name"
-                placeholder="Name for this order"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </label>
-            <label className="consent-row">
-              <input
-                type="checkbox"
-                checked={marketing}
-                onChange={(event) => setMarketing(event.target.checked)}
-              />
-              <span>
-                Send me offers by WhatsApp or SMS. Optional, you can opt out any time.
-              </span>
-            </label>
-            <p className="checkout-privacy-note">
-              We collect only what we need to deliver your order. Read our{" "}
-              <Link href="/privacy">privacy notice</Link>.
-            </p>
-            {authError && <p className="form-error" role="alert">{authError}</p>}
-            <Button className="checkout-auth-submit" type="submit" variant="primary" disabled={authBusy}>
-              {authBusy ? "Saving…" : "Continue to delivery"}
-            </Button>
-            <button type="button" className="checkout-text-link" onClick={changeContact}>
-              Use a different number
-            </button>
-          </form>
-        </Card>
-      );
-    }
-
-    if (authStage === "otp") {
-      return (
-        <Card className="checkout-card checkout-auth-card">
-          <p className="checkout-step-label">Step 2 of 2 · Verify</p>
-          <h2>Enter the 6-digit code</h2>
-          <p className="checkout-card-copy">
-            We sent a code to <strong>{phoneDigits}</strong>. It expires shortly.
-          </p>
-          <form className="checkout-auth-form" onSubmit={(event) => { event.preventDefault(); void submitOtp(otp); }}>
-            <label className="field">
-              <span>One-time code</span>
-              <Input
-                autoFocus
-                autoComplete="one-time-code"
-                className="otp-input"
-                id="checkout-otp"
-                inputMode="numeric"
-                maxLength={6}
-                name="otp"
-                pattern="[0-9]*"
-                placeholder="000000"
-                value={otp}
-                onChange={(event) => setOtp(event.target.value.replace(/\D+/g, "").slice(0, 6))}
-              />
-            </label>
-            {process.env.NEXT_PUBLIC_SHOW_DEV_OTP === "true" && (
-              <p className="dev-otp-hint">Dev OTP: 123456</p>
-            )}
-            {authError && <p className="form-error" role="alert">{authError}</p>}
-            <Button className="checkout-auth-submit" type="submit" variant="primary" disabled={authBusy || otp.length !== 6}>
-              {authBusy ? "Verifying…" : "Verify code"}
-            </Button>
-          </form>
-          <div className="checkout-auth-actions">
-            <button
-              type="button"
-              className="checkout-text-link"
-              onClick={() => void sendOtp()}
-              disabled={resendIn > 0 || authBusy}
-            >
-              {resendIn > 0 ? `Send a new code in ${resendIn}s` : "Send a new code"}
-            </button>
-            <button type="button" className="checkout-text-link" onClick={() => resetAuth(phoneDigits)}>
-              Use a different number
-            </button>
-          </div>
-        </Card>
-      );
-    }
-
     return (
-      <Card className="checkout-card checkout-auth-card">
-        <p className="checkout-step-label">Step 1 of 2 · Sign in</p>
-        <h2>Continue with your phone</h2>
-        <p className="checkout-card-copy">
-          We’ll text a one-time code. No password, no account to remember.
-        </p>
-        <form className="checkout-auth-form" onSubmit={sendOtp}>
-          <label className="field">
-            <span>Mobile number</span>
-            <Input
-              autoFocus
-              autoComplete="tel"
-              id="checkout-phone"
-              inputMode="tel"
-              maxLength={10}
-              name="phone"
-              placeholder="10-digit mobile number"
-              value={phone}
-              onChange={(event) => setPhone(event.target.value.replace(/\D+/g, "").slice(0, 10))}
-            />
-          </label>
-          {authError && <p className="form-error" role="alert">{authError}</p>}
-          <Button className="checkout-auth-submit" type="submit" variant="primary" disabled={authBusy}>
-            {authBusy ? "Sending code…" : "Send code"}
-          </Button>
-        </form>
-        <p className="checkout-privacy-note">
-          We use your number for this order and delivery updates only. Read our{" "}
-          <Link href="/privacy">privacy notice</Link>.
-        </p>
-      </Card>
+      <section className="card checkout-signin">
+        <h2>Sign in to place your order</h2>
+        <p className="checkout-hint">Your cart is saved. Sign in with your phone number to continue.</p>
+        <Button variant="primary" onClick={() => openSignIn({ mode: "customer" })}>Sign in</Button>
+      </section>
     );
   }
 
@@ -820,7 +560,7 @@ export function CheckoutScreen() {
 
       <div className="checkout-layout">
         <div className="checkout-main">
-          {!signedInCustomer || nameStage ? (
+          {!signedInCustomer ? (
             renderAuth()
           ) : (
             <form className="checkout-form" onSubmit={placeOrder} noValidate>

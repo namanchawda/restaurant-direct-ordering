@@ -4,12 +4,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { useSignIn } from "@/components/auth/SignInProvider";
+import { roleHome } from "@/lib/sign-in";
 
-export function AccountMenu() {
+export function AccountMenu({ className }: { className?: string }) {
   const { user, ready, logout } = useAuth();
+  const { openSignIn } = useSignIn();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const rootClass = className ? ` ${className}` : "";
 
   useEffect(() => {
     if (!open) return;
@@ -29,8 +33,16 @@ export function AccountMenu() {
 
   if (!ready) return null;
 
-  if (!user || user.role !== "customer") {
-    return <Link className="account-sign-in" href="/login">Sign in</Link>;
+  if (!user) {
+    return <button type="button" className={`account-sign-in${rootClass}`} onClick={() => openSignIn({ mode: "customer" })}>Sign in</button>;
+  }
+  if (user.role !== "customer") {
+    return (
+      <div className={`account-staff-links${rootClass}`}>
+        <Link className="account-sign-in" href={roleHome(user.role)}>{user.role === "kitchen" ? "Kitchen" : user.role === "admin" ? "Admin" : "Catering"}</Link>
+        <button type="button" className="account-sign-in" onClick={() => { logout(); router.push("/"); }}>Sign out</button>
+      </div>
+    );
   }
 
   return (

@@ -21,7 +21,8 @@ export function RoleGuard({
     if (!ready) return;
     if (!user || !roles.includes(user.role)) {
       const message = !user ? "sign-in-required" : `role-${roles[0]}-required`;
-      router.replace(`/login?message=${message}&next=${encodeURIComponent(pathname)}`);
+      const mode = roles.includes("customer") ? "customer" : "staff";
+      router.replace(`/login?mode=${mode}&message=${message}&next=${encodeURIComponent(pathname)}`);
     }
   }, [ready, user, roles, pathname, router]);
 

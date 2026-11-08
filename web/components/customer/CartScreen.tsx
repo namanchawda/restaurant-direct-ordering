@@ -6,7 +6,7 @@ import { Button, Card, EmptyState, Price, Textarea } from "@/components/ui";
 import { AccountMenu } from "@/components/customer/AccountMenu";
 import { useCart } from "@/components/customer/CartProvider";
 import { FoodImage } from "@/components/customer/FoodImage";
-import { QuantityStepper } from "@/components/customer/MenuScreen";
+import { QuantityStepper } from "@/components/customer/QuantityStepper";
 import { api, describeApiError } from "@/lib/api";
 import type { OutletMenu } from "@/lib/customer";
 import {

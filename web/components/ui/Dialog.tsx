@@ -11,6 +11,7 @@ export function Dialog({
   description,
   children,
   className = "",
+  header,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -18,6 +19,7 @@ export function Dialog({
   description?: string;
   children: ReactNode;
   className?: string;
+  header?: (titleId: string) => ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -51,20 +53,24 @@ export function Dialog({
       }}
     >
       <div className="dialog-content">
-        <header className="dialog-header">
-          <div>
-            <h2 id={titleId}>{title}</h2>
-            {description && <p>{description}</p>}
-          </div>
-          <Button
-            variant="quiet"
-            className="dialog-close"
-            aria-label="Close dialog"
-            onClick={() => onOpenChange(false)}
-          >
-            ×
-          </Button>
-        </header>
+        {header ? (
+          header(titleId)
+        ) : (
+          <header className="dialog-header">
+            <div>
+              <h2 id={titleId}>{title}</h2>
+              {description && <p>{description}</p>}
+            </div>
+            <Button
+              variant="quiet"
+              className="dialog-close"
+              aria-label="Close dialog"
+              onClick={() => onOpenChange(false)}
+            >
+              ×
+            </Button>
+          </header>
+        )}
         {children}
       </div>
     </dialog>
