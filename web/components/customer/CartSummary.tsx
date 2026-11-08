@@ -41,7 +41,7 @@ export function CartSummary() {
   return (
     <Card className="menu-cart-summary">
       <div className="cart-summary-heading pattern-bg">
-        <h2>Your order</h2>
+        <h2>My cart</h2>
         <span
           className="cart-count-badge"
           aria-live="polite"
@@ -74,10 +74,12 @@ export function CartSummary() {
                     />
                     <div className="cart-summary-line-main">
                       <div className="cart-summary-line-title">
-                        <strong>{line.name}</strong>
+                        <div>
+                          <strong>{line.name}</strong>
+                          {selection && <span className="cart-summary-line-selection">{selection}</span>}
+                        </div>
                         <Price amount={cartLineTotal(line)} showGst={false} />
                       </div>
-                      {selection && <p className="cart-summary-line-selection">{selection}</p>}
                     </div>
                     <div className="cart-summary-line-controls">
                       <QuantityStepper
@@ -153,7 +155,7 @@ export function CartSummary() {
             </div>
 
             <Link className="button button-primary cart-summary-checkout" href="/cart">
-              Proceed to checkout
+              PROCEED TO CHECKOUT
             </Link>
           </>
         )}

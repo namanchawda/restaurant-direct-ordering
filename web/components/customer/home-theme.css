@@ -1,0 +1,177 @@
+@import url("https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Archivo+Black&family=Caveat:wght@600&display=swap");
+
+.hb-themed {
+  --hb-red: #d6211f;
+  --hb-red-deep: #a8100f;
+  --hb-blush: #f8d9cf;
+  --hb-cream: #fff1d6;
+  --hb-saffron: #ffc22e;
+  --hb-ink: #2a0f0c;
+  --hb-display: "Bagel Fat One", "Chango", system-ui, sans-serif;
+  --hb-heavy: "Archivo Black", "Arial Black", system-ui, sans-serif;
+  --hb-hand: "Caveat", "Comic Sans MS", cursive;
+
+  background-color: var(--hb-blush);
+  /* outlined doodles: circle, star, crescent, chilli */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' fill='none' stroke='%23d6211f' stroke-opacity='.22' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M30 30 h22 l-3 24 h-16z M34 30 q6 -14 14 0'/%3E%3Cpath d='M120 24 l5 11 12 1 -9 8 3 12 -11 -6 -11 6 3 -12 -9 -8 12 -1z'/%3E%3Cpath d='M40 120 a18 18 0 1 0 14 28 a14 14 0 1 1 -14 -28z'/%3E%3Cpath d='M125 118 q22 6 24 30 q-24 -2 -24 -30z M125 118 q2 -8 8 -10'/%3E%3C/svg%3E");
+  animation: hb-drift 60s linear infinite;
+  position: relative;
+}
+@keyframes hb-drift { to { background-position: 180px 180px; } }
+
+/* checkered strip, a nod to Irani café tablecloths */
+.hb-checker {
+  height: 18px;
+  background: repeating-conic-gradient(var(--hb-ink) 0 25%, var(--hb-cream) 0 50%) 0 0 / 36px 36px;
+}
+
+/* ---------- hero ---------- */
+.hb-hero { padding: 18px 14px 0; max-width: 1240px; margin: 0 auto; }
+.hb-panel {
+  position: relative;
+  overflow: hidden;
+  background: var(--hb-red);
+  border-radius: 22px;
+  padding: clamp(20px, 4vw, 44px);
+  color: var(--hb-cream);
+  box-shadow: 0 14px 0 var(--hb-red-deep), 0 28px 50px rgba(120, 10, 10, .28);
+  min-height: 560px;
+  padding-bottom: clamp(20px, 3vw, 36px);
+}
+.hb-note {
+  position: absolute; top: 18px; right: clamp(16px, 5vw, 60px);
+  display: flex; align-items: flex-start; gap: 6px;
+  font-family: var(--hb-hand); font-size: 1.35rem; line-height: 1.05; max-width: 120px;
+  transform: rotate(-4deg); margin: 0;
+}
+.hb-note svg { width: 40px; flex: none; }
+
+.hb-themed .hb-hero .hb-title {
+  font-family: var(--hb-display) !important;
+  font-weight: 400 !important;
+  padding-bottom: .12em;
+  margin: 0;
+  color: var(--hb-cream);
+  font-size: clamp(3.1rem, 12.5vw, 9.5rem);
+  line-height: .86;
+  letter-spacing: -.01em;
+  text-shadow: 0 6px 0 var(--hb-red-deep);
+}
+.hb-word { display: block; }
+.hb-word > span {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(40px) scale(.6) rotate(-6deg);
+  animation: hb-pop .6s cubic-bezier(.3, 1.6, .5, 1) forwards;
+}
+@keyframes hb-pop { to { opacity: 1; transform: none; } }
+
+.hb-copy { position: relative; z-index: 3; margin-top: clamp(18px, 3vw, 34px); max-width: 420px; }
+.hb-tagline {
+  font-family: var(--hb-heavy); text-transform: uppercase;
+  font-size: clamp(1.5rem, 4vw, 2.6rem); line-height: 1; margin: 0 0 18px; color: var(--hb-cream);
+}
+.hb-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.hb-btn {
+  display: inline-flex; align-items: center; min-height: 46px; padding: 0 22px;
+  border-radius: 999px; font-family: var(--hb-heavy); font-size: .95rem; text-decoration: none;
+  border: 2px solid var(--hb-cream); transition: transform .18s cubic-bezier(.3, 1.6, .5, 1), box-shadow .18s;
+}
+.hb-btn-solid { background: var(--hb-cream); color: var(--hb-red-deep); }
+.hb-btn-ghost { background: transparent; color: var(--hb-cream); }
+.hb-btn:hover { transform: translateY(-3px) rotate(-1.5deg); box-shadow: 0 6px 0 rgba(0, 0, 0, .25); }
+.hb-btn:focus-visible { outline: 3px solid var(--hb-saffron); outline-offset: 3px; }
+.hb-status { display: flex; align-items: center; gap: 8px; margin: 16px 0 0; font-size: .92rem; font-weight: 600; }
+.hb-dot { width: 10px; height: 10px; border-radius: 50%; background: #5be37d; box-shadow: 0 0 0 0 rgba(91, 227, 125, .7); animation: hb-ping 1.8s infinite; flex: none; }
+.hb-dot-closed { background: #bbb; animation: none; }
+@keyframes hb-ping { 70% { box-shadow: 0 0 0 9px rgba(91, 227, 125, 0); } 100% { box-shadow: 0 0 0 0 rgba(91, 227, 125, 0); } }
+
+/* ---------- bowl stage ---------- */
+.hb-stage { position: relative; width: min(420px, 78%); margin: 26px auto 0; z-index: 2; }
+.hb-bowl { animation: hb-drop 1s cubic-bezier(.3, 1.4, .5, 1) 1.2s both, hb-float 5s ease-in-out 2.2s infinite; }
+.hb-bowl img, .hb-bowl-art { display: block; width: 100%; height: auto; filter: drop-shadow(0 22px 22px rgba(60, 0, 0, .45)); }
+@keyframes hb-drop { from { opacity: 0; transform: translateY(-120px) rotate(-8deg); } to { opacity: 1; transform: none; } }
+@keyframes hb-float { 50% { transform: translateY(-12px) rotate(1.2deg); } }
+
+.hb-steam { position: absolute; left: 50%; top: -6%; width: 40%; transform: translateX(-50%); display: flex; justify-content: space-around; pointer-events: none; }
+.hb-steam i {
+  width: 14px; height: 70px; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 241, 214, .75), rgba(255, 241, 214, 0));
+  filter: blur(5px); opacity: 0; animation: hb-rise 3.4s ease-out 2s infinite;
+}
+.hb-steam i:nth-child(2) { animation-delay: 2.8s; height: 90px; }
+.hb-steam i:nth-child(3) { animation-delay: 3.5s; }
+@keyframes hb-rise { 0% { opacity: 0; transform: translateY(30px) scaleX(.8); } 30% { opacity: .9; } 100% { opacity: 0; transform: translateY(-80px) scaleX(1.5); } }
+
+.hb-price {
+  position: absolute; right: -6%; top: 14%; z-index: 4;
+  width: 96px; height: 96px; border-radius: 50%;
+  background: var(--hb-cream); color: var(--hb-red-deep);
+  display: grid; place-content: center; text-align: center; line-height: 1.05;
+  transform: rotate(8deg); box-shadow: 0 6px 0 rgba(0, 0, 0, .2);
+  transition: transform .25s cubic-bezier(.3, 1.8, .5, 1);
+}
+.hb-price small { font-size: .62rem; font-weight: 700; padding: 0 10px; }
+.hb-price strong { font-family: var(--hb-heavy); font-size: 1.35rem; }
+.hb-price:hover { animation: hb-wobble .6s; }
+@keyframes hb-wobble { 25% { transform: rotate(-6deg) scale(1.08); } 60% { transform: rotate(14deg) scale(1.08); } }
+
+.hb-badge {
+  position: absolute; left: -2%; bottom: 22%; z-index: 4; width: 104px; height: 104px; border-radius: 50%;
+  background: var(--hb-saffron); color: var(--hb-ink); display: grid; place-content: center;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, .2);
+}
+.hb-badge svg { position: absolute; inset: 4px; width: calc(100% - 8px); animation: hb-spin 18s linear infinite; }
+.hb-badge text { font-family: var(--hb-heavy); font-size: 10.4px; letter-spacing: .5px; text-transform: uppercase; fill: var(--hb-ink); }
+.hb-badge span { font-family: var(--hb-display); font-size: 1.4rem; }
+@keyframes hb-spin { to { transform: rotate(360deg); } }
+
+/* ---------- marquee ---------- */
+.hb-marquee { overflow: hidden; margin: 22px -14px 0; background: var(--hb-ink); color: var(--hb-cream); padding: 12px 0; transform: rotate(-.6deg); }
+.hb-marquee-track { display: flex; width: max-content; animation: hb-scroll 30s linear infinite; }
+.hb-marquee-track span { font-family: var(--hb-heavy); text-transform: uppercase; font-size: .95rem; white-space: nowrap; padding-right: 26px; }
+.hb-marquee-track b { color: var(--hb-saffron); margin-left: 26px; }
+@keyframes hb-scroll { to { transform: translateX(-50%); } }
+
+/* ---------- menu area: cream panel so food photos stand out ---------- */
+.hb-menu-panel {
+  background: var(--hb-cream);
+  border-radius: 26px;
+  margin: 28px 14px 0;
+  padding: clamp(8px, 2vw, 24px);
+  box-shadow: 0 10px 0 var(--hb-red-deep);
+  scroll-margin-top: 80px;
+}
+.hb-themed .home-favourites-section { max-width: 1240px; margin-inline: auto; }
+.hb-themed .home-row-heading h2 { font-family: var(--hb-display); font-weight: 400; color: var(--hb-red-deep); }
+.hb-themed .dish-row-card { border-radius: 18px; border: 2px solid var(--hb-red); background: #fff; }
+.hb-themed .home-loading { padding: 16px 14px; }
+
+/* dialogs render in a portal, so these are not scoped */
+.location-dialog .location-dialog-header h2 { font-family: "Bagel Fat One", system-ui, sans-serif; font-weight: 400; color: #a8100f; }
+.location-dialog .location-dialog-script { font-family: "Caveat", cursive; color: #d6211f; }
+.area-chip { border-radius: 999px; transition: transform .15s cubic-bezier(.3, 1.6, .5, 1); }
+.area-chip:hover { transform: translateY(-2px) rotate(-1deg); }
+.area-chip-selected { background: #d6211f; color: #fff1d6; border-color: #d6211f; }
+
+/* ---------- larger screens ---------- */
+@media (min-width: 860px) {
+  .hb-hero { padding-inline: 28px; }
+  .hb-panel { display: grid; grid-template-columns: 1.15fr .85fr; grid-template-areas: "title title" "copy stage"; align-items: end; }
+  .hb-title { grid-area: title; }
+  .hb-copy { grid-area: copy; margin-top: 0; }
+  .hb-stage { grid-area: stage; width: 100%; margin: -40px 0 0; }
+  .hb-marquee { margin-inline: -28px; }
+  .hb-menu-panel { margin-inline: 28px; }
+}
+@media (max-width: 480px) {
+  .hb-note { display: none; }
+  .hb-price { width: 82px; height: 82px; right: -2%; }
+  .hb-badge { width: 84px; height: 84px; }
+  .hb-badge text { font-size: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hb-themed, .hb-bowl, .hb-steam i, .hb-badge svg, .hb-marquee-track, .hb-dot { animation: none !important; }
+  .hb-word > span { animation: none !important; opacity: 1; transform: none; }
+}

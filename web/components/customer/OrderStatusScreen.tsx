@@ -15,16 +15,8 @@ import {
   formatINR,
   formatItemCount,
   formatTime,
-  minutesUntil,
 } from "@/lib/format";
-import {
-  activeStepIndex,
-  isFinalStatus,
-  ORDER_STEPS,
-  orderItemCount,
-  orderItemTotal,
-  statusLabel,
-} from "@/lib/orders";
+import { orderItemCount, orderItemTotal, statusLabel } from "@/lib/orders";
 import type { Order } from "@/lib/orders";
 
 const DeliveryMap = dynamic(
@@ -44,6 +36,7 @@ export function OrderStatusScreen({ publicId }: { publicId: string }) {
   const { tracking } = useDeliveryTracking(publicId, order?.status);
   const toast = useToast();
   const [outlet, setOutlet] = useState<OutletResult | null>(null);
+  const [sheetExpanded, setSheetExpanded] = useState(false);
 
   useEffect(() => {
     if (!order?.outlet_id) return;
@@ -114,9 +107,6 @@ export function OrderStatusScreen({ publicId }: { publicId: string }) {
     );
   }
 
-  const stepIndex = activeStepIndex(order.status);
-  const final = isFinalStatus(order.status);
-  const remaining = minutesUntil(order.promised_at);
   const pendingPayment = order.payment_status !== "paid" && order.status !== "cancelled";
 
   return (
@@ -139,14 +129,152 @@ export function OrderStatusScreen({ publicId }: { publicId: string }) {
       </div>
       {tracking && order.status !== "cancelled" && (
         <section className="delivery-experience" aria-label="Live delivery tracking">
-          <div className="delivery-banner">
-            <div><p className="customer-eyebrow">{tracking.stage === "delivered" ? "Delivered" : "Live delivery"}</p><h1>{tracking.stage === "delivered" ? "Your order has arrived" : tracking.stage === "rider_assigned" ? `Rider ${tracking.rider?.name ?? "assigned"} is heading to the restaurant` : tracking.stage === "at_restaurant" ? "Your rider is at the restaurant" : tracking.stage === "arriving" ? "Your rider is arriving" : tracking.stage === "on_the_way" ? "On the way" : "Preparing your order"}</h1></div>
-            <span className="delivery-sim-badge">Demo delivery · fictional rider</span>
+          <div className="tracking-layout">
+            <div className="tracking-map"><DeliveryMap tracking={tracking} /></div>
+            <div className="tracking-sheet">
+              <button
+                type="button"
+                className="sheet-grab-handle"
+                aria-expanded={sheetExpanded}
+                onClick={() => setSheetExpanded((prev) => !prev)}
+              >
+                <span aria-hidden="true">≡</span>
+                <span className="sheet-expand-label">{sheetExpanded ? "Show less" : "Show tracking details"}</span>
+              </button>
+              <div className="sheet-scroll">
+                {tracking.stage === "delivered" ? (
+                  <>
+                    <div className="sheet-status">
+                      <p className="customer-eyebrow">Delivered</p>
+                      <h2>Your order has arrived</h2>
+                      <span className="delivery-sim-badge">Demo delivery · fictional rider</span>
+                    </div>
+                    <ol className="delivery-stepper" aria-label="Delivery progress">
+                      {TRACKING_STEPS.map(([key, label]) => (
+                        <li key={key} className={tracking.stage === key || TRACKING_STEPS.findIndex(([s]) => s === key) <= TRACKING_STEPS.findIndex(([s]) => s === tracking.stage) ? "is-done" : ""}>
+                          <span aria-hidden="true">✓</span>{label}
+                        </li>
+                      ))}
+                    </ol>
+                    <div className="sheet-order-again">
+                      <Link className="button button-primary sheet-order-again-button" href="/">
+                        Order again
+                      </Link>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="sheet-header">
+                      <div>
+                        <p className="customer-eyebrow">Live delivery</p>
+                        <h1>
+                          {tracking.stage === "rider_assigned"
+                            ? `Rider ${tracking.rider?.name ?? "assigned"} is heading to the restaurant`
+                            : tracking.stage === "at_restaurant"
+                              ? "Your rider is at the restaurant"
+                              : tracking.stage === "arriving"
+                                ? "Your rider is arriving"
+                                : tracking.stage === "on_the_way"
+                                  ? "On the way"
+                                  : "Preparing your order"}
+                        </h1>
+                      </div>
+                      <span className="delivery-sim-badge">Demo delivery · fictional rider</span>
+                    </div>
+                    <div className="sheet-eta">
+                      <strong>
+                        Arriving by {tracking.eta_at ? formatTime(tracking.eta_at) : formatTime(order.promised_at)}
+                      </strong>
+                      <span>
+                        {tracking.minutes_remaining === null
+                          ? "We’re finding the best rider."
+                          : tracking.minutes_remaining === 0
+                            ? "Any moment now"
+                            : `${tracking.minutes_remaining} min left · ${tracking.distance_km} km route`}
+                      </span>
+                    </div>
+                    <ol className="delivery-stepper" aria-label="Delivery progress">
+                      {TRACKING_STEPS.map(([key, label]) => (
+                        <li key={key} className={tracking.stage === key ? "is-current" : TRACKING_STEPS.findIndex(([s]) => s === tracking.stage) > TRACKING_STEPS.findIndex(([s]) => s === key) ? "is-done" : ""}>
+                          <span aria-hidden="true">{tracking.stage === key ? "•" : "✓"}</span>{label}
+                        </li>
+                      ))}
+                    </ol>
+                    {tracking.rider && (
+                      <div className="rider-card">
+                        <div className="rider-avatar" aria-hidden="true">{tracking.rider.name.slice(0, 1)}</div>
+                        <div>
+                          <strong>{tracking.rider.name}</strong>
+                          <span>{tracking.rider.vehicle} · ★ {tracking.rider.rating.toFixed(1)}</span>
+                          <small>Fictional rider · {tracking.rider.masked_phone}</small>
+                        </div>
+                        <Button variant="secondary" onClick={() => toast("Calls are simulated in this demo", "info")}>
+                          Call rider
+                        </Button>
+                      </div>
+                    )}
+                    <div className="sheet-order-items">
+                      <h3>Your order</h3>
+                      <ul className="sheet-items">
+                        {order.items.map((item, index) => (
+                          <li key={`${item.name}-${index}`} className="sheet-item">
+                            <div>
+                              <strong>{item.quantity} × {item.name}</strong>
+                              {item.addons.length > 0 && (
+                                <span className="sheet-item-addons">{item.addons.map((addon) => addon.name).join(", ")}</span>
+                              )}
+                            </div>
+                            <strong>{formatINR(orderItemTotal(item))}</strong>
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="sheet-totals">
+                        <div className="sheet-total-row">
+                          <span>Subtotal <span className="gst-inline">incl. 5% GST</span></span>
+                          <Price amount={order.total_inr - order.delivery_fee_inr - order.gst_included_inr} showGst={false} />
+                        </div>
+                        {order.coupon_discount_inr > 0 && (
+                          <div className="sheet-total-row">
+                            <span>Coupon</span>
+                            <strong>- {formatINR(order.coupon_discount_inr)}</strong>
+                          </div>
+                        )}
+                        {order.redeemed_points > 0 && (
+                          <div className="sheet-total-row">
+                            <span>Loyalty points</span>
+                            <strong>- {formatINR(order.points_discount_inr)}</strong>
+                          </div>
+                        )}
+                        <div className="sheet-total-row">
+                          <span>Delivery fee</span>
+                          <strong>{order.delivery_fee_inr === 0 ? "Free" : formatINR(order.delivery_fee_inr)}</strong>
+                        </div>
+                        <div className="sheet-total-row sheet-gst-row">
+                          <span>GST included</span>
+                          <strong>{formatINR(order.gst_included_inr)}</strong>
+                        </div>
+                        <div className="sheet-total-row sheet-grand">
+                          <strong>Total</strong>
+                          <Price amount={order.total_inr} showGst={false} />
+                        </div>
+                      </div>
+                      <div className="sheet-address">
+                        <h3>Deliver to</h3>
+                        <p>{order.delivery_address ?? "Address shared with the kitchen."}</p>
+                        {order.notes && (
+                          <>
+                            <h4>Kitchen note</h4>
+                            <p>{order.notes}</p>
+                          </>
+                        )}
+                        <p className="sheet-help">For help with this order, contact the kitchen using the number on your payment confirmation.</p>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
-          {tracking.stage !== "delivered" ? <div className="delivery-eta"><strong>Arriving by {tracking.eta_at ? formatTime(tracking.eta_at) : formatTime(order.promised_at)}</strong><span>{tracking.minutes_remaining === null ? "We’re finding the best rider." : tracking.minutes_remaining === 0 ? "Any moment now" : `${tracking.minutes_remaining} min left · ${tracking.distance_km} km route`}</span></div> : <div className="delivery-complete"><strong>Delivered safely</strong><span>Thanks for ordering direct.</span></div>}
-          <DeliveryMap tracking={tracking} />
-          {tracking.rider && tracking.stage !== "delivered" && <div className="rider-card"><div className="rider-avatar" aria-hidden="true">{tracking.rider.name.slice(0, 1)}</div><div><strong>{tracking.rider.name}</strong><span>{tracking.rider.vehicle} · ★ {tracking.rider.rating.toFixed(1)}</span><small>Fictional rider · {tracking.rider.masked_phone}</small></div><Button variant="secondary" onClick={() => toast("Calls are simulated in this demo", "info")}>Call rider</Button></div>}
-          <ol className="delivery-stepper" aria-label="Delivery progress">{TRACKING_STEPS.map(([key, label]) => <li key={key} className={tracking.stage === key ? "is-current" : TRACKING_STEPS.findIndex(([s]) => s === tracking.stage) > TRACKING_STEPS.findIndex(([s]) => s === key) ? "is-done" : ""}><span aria-hidden="true">{tracking.stage === key ? "•" : "✓"}</span>{label}</li>)}</ol>
         </section>
       )}
       <div className="order-heading">
@@ -169,15 +297,6 @@ export function OrderStatusScreen({ publicId }: { publicId: string }) {
         </Card>
       ) : (
         <>
-          {order.escalated_at && !final && false && (
-            <div className="order-escalation-note" role="status">
-              <strong>We’ve alerted the kitchen.</strong>
-              <span>
-                They’ve given a new estimate of {formatTime(order?.promised_at ?? "")}. Your order
-                is still with them, and this page will update when it moves on.
-              </span>
-            </div>
-          )}
 
           {(order.escalated_at || order.is_late) && (
             <div className="order-late-note" role="status" aria-live="polite">
@@ -190,62 +309,6 @@ export function OrderStatusScreen({ publicId }: { publicId: string }) {
               </span>
             </div>
           )}
-
-          <Card className="order-progress-card">
-            <div className="order-promise">
-              <div>
-                <p className="customer-eyebrow">
-                  {order.status === "delivered"
-                    ? "Order complete"
-                    : order.is_late
-                      ? "A little behind"
-                      : "Expected"}
-                </p>
-                <strong>
-                  {order.status === "delivered"
-                    ? "Delivered"
-                    : order.is_late
-                      ? `About ${order.minutes_late} min late`
-                      : `Arriving by ${formatTime(order.promised_at)}`}
-                </strong>
-                <span>
-                  {order.status === "delivered"
-                    ? "Thank you for ordering direct."
-                    : order.is_late
-                      ? `Originally expected by ${formatTime(order.promised_at)}.`
-                      : remaining > 0
-                        ? `About ${remaining} ${remaining === 1 ? "minute" : "minutes"} to go.`
-                        : "Any moment now."}
-                </span>
-                {order.kitchen_busy && (
-                  <span className="order-kitchen-busy">The kitchen is busy right now.</span>
-                )}
-              </div>
-              <span className="order-live-note">
-                <span className="order-live-dot" aria-hidden="true" />
-                {final ? "Final update" : "Updates automatically"}
-              </span>
-            </div>
-
-            {order.status !== "delivered" && <ol className="order-steps" aria-label="Order progress">
-              {ORDER_STEPS.map((step, index) => {
-                const completed = stepIndex >= index;
-                const current = stepIndex === index;
-                return (
-                  <li
-                    key={step.status}
-                    className={`order-step${completed ? " is-complete" : ""}${current ? " is-current" : ""}`}
-                    aria-current={current ? "step" : undefined}
-                  >
-                    <span className="order-step-dot" aria-hidden="true">
-                      {completed ? "✓" : index + 1}
-                    </span>
-                    <span className="order-step-label">{step.label}</span>
-                  </li>
-                );
-              })}
-            </ol>}
-          </Card>
         </>
       )}
 
@@ -256,89 +319,11 @@ export function OrderStatusScreen({ publicId }: { publicId: string }) {
         </div>
       )}
 
-      <div className="order-detail-grid">
-        <div className="order-detail-main">
-          <Card className="order-items-card">
-            <div className="order-card-heading">
-              <h2>Your order</h2>
-              <span>{formatItemCount(orderItemCount(order))}</span>
-            </div>
-            <ul className="order-items">
-              {order.items.map((item, index) => (
-                <li className="order-item" key={`${item.name}-${index}`}>
-                  <div>
-                    <strong>{item.quantity} × {item.name}</strong>
-                    {item.addons.length > 0 && (
-                      <span className="order-item-addons">
-                        {item.addons.map((addon) => addon.name).join(", ")}
-                      </span>
-                    )}
-                  </div>
-                  <strong>{formatINR(orderItemTotal(item))}</strong>
-                </li>
-              ))}
-            </ul>
-            <div className="cart-total-row">
-              <span>Subtotal <span className="gst-inline">incl. 5% GST</span></span>
-              <Price amount={order.total_inr} showGst={false} />
-            </div>
-            <div className="cart-total-row cart-gst-row">
-              <span>GST included</span>
-              <strong>{formatINR(order.gst_included_inr)}</strong>
-            </div>
-            <div className="cart-total-row cart-grand-total">
-              <strong>Total</strong>
-              <Price amount={order.total_inr} showGst={false} />
-            </div>
-          </Card>
-
-          {order.status_history.length > 1 && (
-            <Card className="order-history-card">
-              <h2>Order updates</h2>
-              <ol className="order-history">
-                {[...order.status_history].reverse().map((event, index) => (
-                  <li key={`${event.status}-${event.at}-${index}`}>
-                    <span className="order-history-dot" aria-hidden="true" />
-                    <div>
-                      <strong>{statusLabel(event.status)}</strong>
-                      <span>{formatDateTime(event.at)}</span>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </Card>
-          )}
-        </div>
-
-        <aside className="order-detail-aside">
-          <Card className="order-info-card">
-            <h2>Delivery</h2>
-            <p>{order.delivery_address ?? "Address shared with the kitchen."}</p>
-            {order.notes && (
-              <>
-                <h3>Kitchen note</h3>
-                <p>{order.notes}</p>
-              </>
-            )}
-            <h3>Kitchen</h3>
-            <p>
-              {outlet?.name ?? "Your kitchen"}
-              {outlet?.fssai_number && (
-                <span className="order-fssai">FSSAI {outlet.fssai_number}</span>
-              )}
-              {outlet?.address && <span className="order-fssai">{outlet.address}</span>}
-            </p>
-            <p className="order-help">
-              For help with this order, contact the kitchen using the number on your payment
-              confirmation.
-            </p>
-          </Card>
-
-          <Link className="button button-secondary order-back-menu" href={`/outlet/${order.outlet_id}`}>
-            Back to the menu
-          </Link>
-          <Link className="order-all-orders" href="/orders">View all orders</Link>
-        </aside>
+      <div className="order-actions">
+        <Link className="button button-secondary order-back-menu" href={`/outlet/${order.outlet_id}`}>
+          Back to the menu
+        </Link>
+        <Link className="order-all-orders" href="/orders">View all orders</Link>
       </div>
     </main>
   );

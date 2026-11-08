@@ -17,6 +17,30 @@ import {
 } from "@/lib/cart";
 import type { CartLine } from "@/lib/cart";
 import { formatINR } from "@/lib/customer";
+import { DELIVERY_FEE_INR, freeDeliveryStatus } from "@/lib/checkout";
+import "@/components/customer/components-theme.css";
+import "@/components/customer/home-theme.css";
+
+function RemoveIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 6h18" />
+      <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6M14 11v6" />
+    </svg>
+  );
+}
 
 function CartLineCard({ line }: { line: CartLine }) {
   const { setQuantity, removeLine } = useCart();
@@ -35,10 +59,10 @@ function CartLineCard({ line }: { line: CartLine }) {
         sizes="96px"
       />
       <div className="cart-line-main">
-        <div className="cart-line-title-row">
+        <div className="cart-line-title">
           <div>
-            <h2>{line.name}</h2>
-            {selection.length > 0 && <p className="cart-line-selection">{selection.join(" · ")}</p>}
+            <strong>{line.name}</strong>
+            {selection.length > 0 && <span className="cart-line-selection">{selection.join(" · ")}</span>}
           </div>
           <Price amount={cartLineTotal(line)} showGst={false} />
         </div>
@@ -52,8 +76,8 @@ function CartLineCard({ line }: { line: CartLine }) {
             onDecrease={() => setQuantity(line.id, line.quantity - 1)}
             onIncrease={() => setQuantity(line.id, line.quantity + 1)}
           />
-          <button type="button" className="remove-line" onClick={() => removeLine(line.id)}>
-            Remove
+          <button type="button" className="cart-line-remove" aria-label={`Remove ${line.name}`} onClick={() => removeLine(line.id)}>
+            <RemoveIcon />
           </button>
         </div>
       </div>
@@ -93,12 +117,15 @@ export function CartScreen() {
 
   const subtotal = cartSubtotal(cart.lines);
   const gstAmount = includedGstAmount(subtotal);
+  const freeDelivery = freeDeliveryStatus(subtotal);
+  const deliveryFee = freeDelivery.unlocked ? 0 : DELIVERY_FEE_INR;
+  const total = subtotal + deliveryFee;
   const staleCount = cart.lines.filter((line) => line.staleReason).length;
   const menuLoading = hydrated && cart.lines.length > 0 && verifiedMenuKey !== validationKey && !menuError;
   const checkoutBlocked = menuLoading || Boolean(menuError) || staleCount > 0;
 
   return (
-    <main className="customer-page cart-page">
+    <main className="customer-page cart-page hb-themed">
       <header className="simple-page-header">
         <Link href={cart.outletId ? `/outlet/${cart.outletId}` : "/"} className="back-link">
           <span aria-hidden="true">←</span> Menu
@@ -178,17 +205,21 @@ export function CartScreen() {
           <aside className="cart-total-panel" aria-label="Order totals">
             <Card className="cart-total-card">
               <h2>Order summary</h2>
-              <div className="cart-total-row">
+              <div className="cart-summary-total">
                 <span>Subtotal <span className="gst-inline">incl. 5% GST</span></span>
                 <Price amount={subtotal} showGst={false} />
               </div>
-              <div className="cart-total-row cart-gst-row">
-                <span>GST included (5% of total ÷ 105)</span>
+              <div className="cart-summary-total cart-gst-row">
+                <span>GST included</span>
                 <strong>{formatINR(gstAmount, 2)}</strong>
               </div>
-              <div className="cart-total-row cart-grand-total">
-                <strong>Total</strong>
-                <Price amount={subtotal} showGst={false} />
+              <div className="cart-summary-total">
+                <span>Delivery fee</span>
+                <strong>{freeDelivery.unlocked ? "Free" : formatINR(deliveryFee)}</strong>
+              </div>
+              <div className="cart-summary-total cart-summary-grand">
+                <span>Total</span>
+                <Price amount={total} showGst={false} />
               </div>
               {staleCount > 0 && (
                 <p className="checkout-hint" role="alert">
@@ -207,7 +238,7 @@ export function CartScreen() {
                   if (checkoutBlocked) event.preventDefault();
                 }}
               >
-                {menuLoading ? "Verifying menu…" : "Checkout"}
+                {menuLoading ? "Verifying menu…" : "PROCEED TO CHECKOUT"}
               </Link>
               <Link
                 className="continue-shopping"

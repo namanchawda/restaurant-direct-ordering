@@ -114,7 +114,7 @@ export function SiteHeader({ area, onChangeLocation, onOpenCart, search, onSearc
   const cartMark = (
     <>
       <span aria-hidden="true">🛒</span>
-      <span className="site-cart-count">{cartCount}</span>
+      <span key={cartCount} className="site-cart-count">{cartCount}</span>
     </>
   );
 
@@ -137,9 +137,8 @@ export function SiteHeader({ area, onChangeLocation, onOpenCart, search, onSearc
     <header className="site-header">
       <div className="site-header-shell">
         <div className="site-header-bar">
-          <Link className="brand-lockup site-brand" href="/">
-            <span className="brand-mark" aria-hidden="true">H</span>
-            <span>Hyderabad Biryani</span>
+          <Link className="site-brand" href="/" aria-label="Hyderabad Biryani, home">
+            <span className="site-wordmark">Hyderabad<br />Biryani</span>
           </Link>
 
           <nav className="site-nav" aria-label="Primary">

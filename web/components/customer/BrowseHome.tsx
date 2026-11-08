@@ -5,6 +5,7 @@ import { Button, Dialog, Skeleton, useToast } from "@/components/ui";
 import { CartSummary } from "@/components/customer/CartSummary";
 import { FoodImage } from "@/components/customer/FoodImage";
 import { HeartToggle } from "@/components/customer/HeartToggle";
+import { HomeHero } from "@/components/customer/HomeHero";
 import { MenuScreen } from "@/components/customer/MenuScreen";
 import { SiteHeader } from "@/components/customer/SiteHeader";
 import { useCart } from "@/components/customer/CartProvider";
@@ -20,6 +21,8 @@ import { selectDefaultOutlet } from "@/lib/outlet-selection";
 import { useAuth } from "@/lib/auth";
 import { useSignIn } from "@/components/auth/SignInProvider";
 import { shouldShowWelcome } from "@/lib/welcome";
+import "@/components/customer/home-theme.css";
+import "@/components/customer/components-theme.css";
 
 const WELCOME_SEEN_KEY = "hyderabad-biryani-welcome-seen";
 
@@ -207,7 +210,8 @@ export function BrowseHome() {
   ) : null;
 
   return (
-    <main className="customer-page menu-page browse-home">
+    <main className="customer-page menu-page browse-home hb-themed">
+      <div className="hb-checker" aria-hidden="true" />
       <SiteHeader
         area={areaReady ? area : undefined}
         onChangeLocation={() => setLocationOpen(true)}
@@ -215,18 +219,26 @@ export function BrowseHome() {
         search={search}
         onSearch={setSearch}
       />
+      <HomeHero
+        areaName={areaReady ? area.name : undefined}
+        isOpen={outlet?.is_open}
+        outletName={outlet?.name}
+      />
       {loading && <div className="home-loading"><Skeleton className="home-loading-hero" /><Skeleton className="home-loading-line" /><Skeleton className="home-loading-line short" /></div>}
       {error && <div className="customer-error home-load-error" role="alert"><p>{error}</p><Button variant="secondary" onClick={() => setArea({ ...area })}>Try again</Button></div>}
       {outlet && !error && (
-        <MenuScreen
-          outletId={outlet.id}
-          browseFirst
-          onOpenCart={() => setCartOpen(true)}
-          search={search}
-          onSearch={setSearch}
-          favouritesSection={favouritesSection}
-        />
+        <div id="hb-menu" className="hb-menu-panel">
+          <MenuScreen
+            outletId={outlet.id}
+            browseFirst
+            onOpenCart={() => setCartOpen(true)}
+            search={search}
+            onSearch={setSearch}
+            favouritesSection={favouritesSection}
+          />
+        </div>
       )}
+      <div className="hb-checker hb-checker-end" aria-hidden="true" style={{ marginTop: 28 }} />
 
       <Dialog
         open={locationOpen}

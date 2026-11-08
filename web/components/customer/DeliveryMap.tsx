@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import type { Tracking } from "@/lib/delivery";
 
 const markerIcons = {
-  outlet: `<path d="M16 1C8.82 1 3 6.82 3 14c0 9.1 13 24 13 24s13-14.9 13-24C29 6.82 23.18 1 16 1Z" fill="#9b3b2f" stroke="#fff" stroke-width="2"/><circle cx="16" cy="14" r="5" fill="#fff"/>`,
-  home: `<path d="M16 1C8.82 1 3 6.82 3 14c0 9.1 13 24 13 24s13-14.9 13-24C29 6.82 23.18 1 16 1Z" fill="#247248" stroke="#fff" stroke-width="2"/><path d="m10 14 6-5 6 5v7h-4v-4h-4v4h-4Z" fill="#fff"/>`,
+  outlet: `<path d="M16 1C8.82 1 3 6.82 3 14c0 9.1 13 24 13 24s13-14.9 13-24C29 6.82 23.18 1 16 1Z" fill="#B5532D" stroke="#fff" stroke-width="2"/><circle cx="16" cy="14" r="5" fill="#fff"/>`,
+  home: `<path d="M16 1C8.82 1 3 6.82 3 14c0 9.1 13 24 13 24s13-14.9 13-24C29 6.82 23.18 1 16 1Z" fill="#B5532D" stroke="#fff" stroke-width="2"/><path d="m10 14 6-5 6 5v7h-4v-4h-4v4h-4Z" fill="#fff"/>`,
   rider: `<path d="M16 1C8.82 1 3 6.82 3 14c0 9.1 13 24 13 24s13-14.9 13-24C29 6.82 23.18 1 16 1Z" fill="#241d1b" stroke="#fff" stroke-width="2"/><circle cx="16" cy="11" r="3" fill="#fff"/><path d="m10 21 3-7h5l4 7h-3l-2-4-2 4Z" fill="#fff"/>`,
 } as const;
 

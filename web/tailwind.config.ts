@@ -5,18 +5,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: "#2A1A12",
-        muted: "#7A6558",
+        ink: "#1B0F0B",
+        muted: "#6E5A4F",
         surface: "#FFFFFF",
-        canvas: "#F6EFE6",
-        line: "#EADCCF",
+        canvas: "#F7E9D2",
+        line: "#E8D5BC",
         brand: {
-          DEFAULT: "#B5532D",
-          deep: "#7A2E14",
-          soft: "#F6E3D5",
+          DEFAULT: "#D4261C",
+          deep: "#A81B13",
+          soft: "#FBE3D8",
         },
-        copper: "#C99A4B",
-        search: "#E9C77B",
+        copper: "#F2B632",
+        search: "#F7E9D2",
       },
       spacing: {
         "18": "4.5rem",

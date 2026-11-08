@@ -1,0 +1,112 @@
+/* Red + saffron theme for shared components. Save as src/components/customer/components-theme.css
+   "body .x" is used on purpose so these rules win over the older plain ".x" rules. */
+:root {
+  --hb-red: #d6211f; --hb-red-deep: #a8100f; --hb-blush: #f8d9cf; --hb-cream: #fff1d6;
+  --hb-saffron: #ffc22e; --hb-ink: #2a0f0c;
+  --hb-display: "Bagel Fat One", "Chango", system-ui, sans-serif;
+  --hb-heavy: "Archivo Black", "Arial Black", system-ui, sans-serif;
+  --hb-hand: "Caveat", "Comic Sans MS", cursive;
+  --hb-pop: cubic-bezier(.3, 1.6, .5, 1);
+}
+
+/* ----- shared bits ----- */
+body .customer-eyebrow { font-family: var(--hb-hand); font-size: 1.3rem; font-weight: 600; color: var(--hb-red); text-transform: none; letter-spacing: 0; }
+body .button-primary, body .menu-add-button, body .sheet-add-button {
+  background: var(--hb-red); color: var(--hb-cream); border: 2px solid var(--hb-red-deep);
+  font-family: var(--hb-heavy); border-radius: 999px; box-shadow: 0 4px 0 var(--hb-red-deep);
+  transition: transform .15s var(--hb-pop), box-shadow .15s;
+}
+body .button-primary:hover, body .menu-add-button:hover, body .sheet-add-button:hover { transform: translateY(-2px); box-shadow: 0 6px 0 var(--hb-red-deep); }
+body .button-primary:active, body .menu-add-button:active, body .sheet-add-button:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--hb-red-deep); }
+body .button-secondary { border: 2px solid var(--hb-red); color: var(--hb-red-deep); background: transparent; border-radius: 999px; font-family: var(--hb-heavy); }
+body .button-secondary:hover { background: var(--hb-saffron); color: var(--hb-ink); border-color: var(--hb-ink); }
+
+/* ----- header ----- */
+body .site-header-shell { background: var(--hb-cream); border: 2px solid var(--hb-ink); border-radius: 999px; box-shadow: 0 5px 0 var(--hb-red-deep); }
+body .site-header-bar { background: transparent; border: 0; box-shadow: none; }
+body .brand-mark { background: var(--hb-red); color: var(--hb-cream); font-family: var(--hb-display); border-radius: 12px; transform: rotate(-5deg); transition: transform .3s var(--hb-pop); }
+body .site-brand:hover .brand-mark { transform: rotate(6deg) scale(1.12); }
+body .site-nav-link { font-family: var(--hb-heavy); font-size: .82rem; color: var(--hb-ink); border-radius: 999px; transition: background .15s, color .15s, transform .15s var(--hb-pop); }
+body .site-nav-link:hover { color: var(--hb-red); transform: translateY(-2px); }
+body .site-nav-link.is-active { background: var(--hb-red); color: var(--hb-cream); }
+body .site-search, body .menu-search { background: var(--hb-saffron); border: 2px solid var(--hb-ink); border-radius: 999px; }
+body .site-search input, body .menu-search input { color: var(--hb-ink); font-weight: 600; }
+body .site-search input::placeholder, body .menu-search input::placeholder { color: rgba(42, 15, 12, .6); }
+body .site-location { border: 2px solid var(--hb-ink); background: #fff; }
+body .site-location-change { color: var(--hb-red); font-weight: 700; }
+body .site-cart { background: var(--hb-red); color: var(--hb-cream); border: 2px solid var(--hb-ink); transition: transform .2s var(--hb-pop); }
+body .site-cart:hover { transform: rotate(-8deg) scale(1.1); }
+body .site-cart-count { background: var(--hb-saffron); color: var(--hb-ink); font-family: var(--hb-heavy); border: 2px solid var(--hb-ink); animation: hb-count-pop .45s var(--hb-pop); }
+@keyframes hb-count-pop { 0% { transform: scale(.3); } 100% { transform: scale(1); } }
+
+/* ----- menu: tabs, tools, categories ----- */
+body .menu-tools .veg-filter { border: 2px solid var(--hb-ink); border-radius: 999px; background: #fff; font-weight: 700; }
+body .category-tabs { position: sticky; top: 0; z-index: 20; background: var(--hb-cream); padding-block: 10px; }
+body .category-tab, body .home-chip { border: 2px solid var(--hb-red); color: var(--hb-red-deep); background: transparent; border-radius: 999px; font-family: var(--hb-heavy); font-size: .85rem; transition: transform .15s var(--hb-pop), background .15s; }
+body .category-tab:hover, body .home-chip:hover { transform: translateY(-2px) rotate(-1deg); background: var(--hb-saffron); color: var(--hb-ink); }
+body .category-tab.active, body .home-chip.is-active { background: var(--hb-red); color: var(--hb-cream); border-color: var(--hb-red-deep); box-shadow: 0 3px 0 var(--hb-red-deep); }
+body .home-chips { display: none; } /* duplicate of the sticky category tabs below */
+body .menu-category-header h2 { font-family: var(--hb-display); font-weight: 400; color: var(--hb-red-deep); font-size: clamp(1.8rem, 4vw, 2.6rem); }
+body .menu-category-header p { font-family: var(--hb-hand); font-size: 1.2rem; color: var(--hb-ink); opacity: .75; }
+
+/* ----- dish cards ----- */
+body .menu-item-card { border: 2px solid var(--hb-ink); border-radius: 24px; background: #fff; transition: transform .25s var(--hb-pop), box-shadow .25s; position: relative; }
+body .menu-item-card:hover { transform: translateY(-6px) rotate(-.5deg); box-shadow: 0 10px 0 var(--hb-red-deep); }
+body .menu-item-photo { border-radius: 16px; overflow: hidden; }
+body .menu-item-photo img, body .menu-item-photo .food-image-photo { transition: transform .5s ease; }
+body .menu-item-card:hover .food-image-photo { transform: scale(1.08); }
+body .menu-item-name-row strong { font-family: var(--hb-heavy); font-size: 1.02rem; color: var(--hb-ink); }
+body .menu-item-meta .spice-level { color: var(--hb-red-deep); font-weight: 700; }
+body .menu-item-unavailable { filter: grayscale(.8); opacity: .65; }
+body .menu-item-unavailable:hover { transform: none; box-shadow: none; }
+body .unavailable-label { background: var(--hb-ink); color: var(--hb-cream); padding: 2px 10px; border-radius: 999px; font-size: .75rem; font-weight: 700; }
+body .heart-toggle { background: var(--hb-cream); border: 2px solid var(--hb-ink); color: var(--hb-ink); transition: transform .2s var(--hb-pop); }
+body .heart-toggle:hover { transform: scale(1.15); }
+body .heart-toggle-on { background: var(--hb-red); color: var(--hb-cream); animation: hb-heart .5s var(--hb-pop); }
+@keyframes hb-heart { 0% { transform: scale(.6); } 60% { transform: scale(1.35) rotate(-8deg); } 100% { transform: scale(1); } }
+
+/* ----- promo cards ----- */
+body .home-promo-card { border-radius: 24px; border: 2px solid var(--hb-ink); box-shadow: 0 6px 0 var(--hb-ink); }
+body .home-promo-party { background: var(--hb-red); color: var(--hb-cream); }
+body .home-promo-party h2 { font-family: var(--hb-display); font-weight: 400; color: var(--hb-cream); }
+body .home-promo-party .customer-eyebrow { color: var(--hb-saffron); }
+body .home-promo-party .button-primary { background: var(--hb-saffron); color: var(--hb-ink); border-color: var(--hb-ink); box-shadow: 0 4px 0 var(--hb-ink); }
+body .home-promo-perks { background: var(--hb-saffron); color: var(--hb-ink); font-weight: 700; }
+body .home-promo-pill { background: var(--hb-ink); color: var(--hb-saffron); font-family: var(--hb-heavy); }
+body .home-promo-order { background: var(--hb-red); color: var(--hb-cream); border: 2px solid var(--hb-ink); font-family: var(--hb-heavy); transition: transform .2s var(--hb-pop); }
+body .home-promo-order:hover { transform: rotate(-6deg) scale(1.08); }
+
+/* ----- floating cart bar + footer ----- */
+body .mobile-cart-bar { background: var(--hb-ink); color: var(--hb-cream); border-radius: 999px; border: 2px solid var(--hb-saffron); font-family: var(--hb-heavy); }
+body .mobile-cart-action { color: var(--hb-saffron); }
+body .customer-footer { background: var(--hb-ink); color: var(--hb-cream); border-radius: 22px; padding: 22px; margin-top: 24px; }
+body .customer-footer a { color: var(--hb-saffron); }
+
+/* ----- dish popup ----- */
+body .item-dialog { border: 3px solid var(--hb-ink); border-radius: 28px; box-shadow: 0 10px 0 var(--hb-red-deep); animation: hb-sheet .35s var(--hb-pop); }
+body .item-dialog::backdrop { background: rgba(120, 10, 10, .55); backdrop-filter: blur(3px); }
+@keyframes hb-sheet { from { transform: translateY(40px) scale(.94); opacity: 0; } }
+body .item-sheet-title h2 { font-family: var(--hb-display); font-weight: 400; color: var(--hb-red-deep); }
+body .sheet-close { background: var(--hb-ink); color: var(--hb-cream); }
+body .choice-row { border: 2px solid #f0c9b8; border-radius: 16px; transition: transform .15s var(--hb-pop); }
+body .choice-row:hover { transform: translateX(4px); }
+body .choice-row-selected { border-color: var(--hb-red); background: #fff4d9; }
+body .sheet-choice-group legend { font-family: var(--hb-heavy); color: var(--hb-red-deep); }
+
+/* ----- cart page ----- */
+body .cart-page .simple-page-header .back-link { font-family: var(--hb-heavy); color: var(--hb-red-deep); }
+body .cart-page-heading h1 { font-family: var(--hb-display); font-weight: 400; color: var(--hb-red-deep); font-size: clamp(2.2rem, 6vw, 3.6rem); }
+body .cart-item-count { background: var(--hb-saffron); color: var(--hb-ink); border: 2px solid var(--hb-ink); border-radius: 999px; padding: 4px 14px; font-family: var(--hb-heavy); }
+body .cart-line { border: 2px solid var(--hb-ink); border-radius: 22px; background: #fff; animation: hb-slide .4s var(--hb-pop) both; }
+@keyframes hb-slide { from { opacity: 0; transform: translateX(-24px); } }
+body .cart-line-photo { border-radius: 14px; overflow: hidden; }
+body .cart-total-card { border: 3px solid var(--hb-ink); border-radius: 26px; background: var(--hb-cream); box-shadow: 0 8px 0 var(--hb-red-deep); }
+body .cart-total-card h2 { font-family: var(--hb-display); font-weight: 400; color: var(--hb-red-deep); }
+body .cart-summary-grand { font-family: var(--hb-heavy); font-size: 1.15rem; border-top: 2px dashed var(--hb-red); padding-top: 10px; }
+body .checkout-button { width: 100%; justify-content: center; text-align: center; }
+body .checkout-button-disabled { opacity: .5; box-shadow: none; pointer-events: none; }
+body .continue-shopping { color: var(--hb-red-deep); font-weight: 700; }
+
+@media (prefers-reduced-motion: reduce) {
+  body .menu-item-card, body .cart-line, body .item-dialog, body .site-cart-count, body .heart-toggle-on { animation: none !important; transition: none !important; }
+}

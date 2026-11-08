@@ -23,6 +23,7 @@ import { FREE_DELIVERY_THRESHOLD_INR } from "@/lib/checkout";
 import { formatINR, servedWindow } from "@/lib/customer";
 import type { MenuItem, OutletMenu } from "@/lib/customer";
 import { openOrderAgainItem } from "@/lib/order-suggestions";
+import { flyToCart } from "@/lib/fly-to-cart";
 
 type OrderSuggestion = {
   item_id: string;
@@ -81,8 +82,9 @@ function ItemCard({
     }
   }
 
-  function handleAdd() {
+  function handleAdd(source?: HTMLElement | null) {
     addLine(outletId, makeCartLine(item, defaultVariantId, [], 1));
+    if (source) flyToCart(source);
     toast(`1 × ${item.name} added to cart.`, "success");
   }
 
@@ -147,7 +149,7 @@ function ItemCard({
               onIncrease={handleIncrease}
             />
           ) : (
-            <Button variant="primary" className="menu-add-button" onClick={handleAdd}>
+            <Button variant="primary" className="menu-add-button" onClick={(event: React.MouseEvent<HTMLElement>) => handleAdd(event.currentTarget)}>
               Add to Cart +
             </Button>
           )}
@@ -233,6 +235,11 @@ function ItemSheet({
               className="item-sheet-photo"
               sizes="(max-width: 700px) 100vw, 560px"
             />
+            <HeartToggle
+              itemId={item.id}
+              isFavourite={isFavourite}
+              onToggle={onToggleFavourite}
+            />
           </div>
           <div className="item-sheet-body">
             <div className="item-sheet-title">
@@ -240,7 +247,6 @@ function ItemSheet({
                 <div className="menu-item-name-row">
                   <h2>{item.name}</h2>
                   <VegMark isVeg={item.is_veg} />
-                  <HeartToggle itemId={item.id} isFavourite={isFavourite} onToggle={onToggleFavourite} />
                 </div>
                 <p>{item.description}</p>
               </div>
@@ -259,15 +265,9 @@ function ItemSheet({
               <fieldset className="sheet-choice-group">
                 <legend>Choose a portion</legend>
                 {item.variants.map((variant) => (
-                  <label className="choice-row" key={variant.id}>
+                  <label className={`choice-row${variantId === variant.id ? " choice-row-selected" : ""}`} key={variant.id}>
                     <span>
-                      <input
-                        type="radio"
-                        name="portion"
-                        value={variant.id}
-                        checked={variantId === variant.id}
-                        onChange={() => setVariantId(variant.id)}
-                      />
+                      <input type="radio" name="portion" value={variant.id} className="pill-input" checked={variantId === variant.id} onChange={() => setVariantId(variant.id)} />
                       {variant.name}
                     </span>
                     <strong>{formatINR(variant.price)}</strong>
@@ -280,13 +280,9 @@ function ItemSheet({
               <fieldset className="sheet-choice-group">
                 <legend>Add something extra</legend>
                 {item.addons.map((addon) => (
-                  <label className="choice-row" key={addon.id}>
+                  <label className={`choice-row${addonIds.includes(addon.id) ? " choice-row-selected" : ""}`} key={addon.id}>
                     <span>
-                      <input
-                        type="checkbox"
-                        checked={addonIds.includes(addon.id)}
-                        onChange={() => toggleAddon(addon.id)}
-                      />
+                      <input type="checkbox" className="pill-input" checked={addonIds.includes(addon.id)} onChange={() => toggleAddon(addon.id)} />
                       {addon.name}
                     </span>
                     <strong>+ {formatINR(addon.price)}</strong>
@@ -303,7 +299,7 @@ function ItemSheet({
                 onIncrease={() => setQuantity((value) => Math.min(20, value + 1))}
               />
               <Button variant="primary" className="sheet-add-button" onClick={addToCart}>
-                Add to cart — {formatINR(total * quantity)}
+                Add to cart · {formatINR(total * quantity)}
               </Button>
             </div>
           </div>
@@ -577,8 +573,10 @@ export function MenuScreen({
     </>
   );
 
+  const Root = browseFirst ? "div" : "main";
+
   return (
-    <main className="customer-page menu-page">
+    <Root className="customer-page menu-page">
       {menu && (
         <>
           {!browseFirst && (
@@ -606,50 +604,7 @@ export function MenuScreen({
             <p className="menu-gst-note">All menu prices {menu.price_note}</p>
           </div>
 
-          {browseFirst && (
-            <section className="home-hero" aria-labelledby="home-hero-title">
-              <div className="home-hero-visual pattern-bg">
-                <div className="home-hero-photo-main">
-                  <FoodImage
-                    src={menuItems[0]?.photo_url ?? ""}
-                    name={menuItems[0]?.name ?? "Hyderabadi food"}
-                    isVeg={menuItems[0]?.is_veg ?? false}
-                    className="home-hero-photo"
-                    priority
-                    sizes="(max-width: 860px) 60vw, 30vw"
-                  />
-                  {menuItems[1] && (
-                    <div className="home-hero-photo-thumb">
-                      <FoodImage
-                        src={menuItems[1].photo_url}
-                        name={menuItems[1].name}
-                        isVeg={menuItems[1].is_veg}
-                        className="home-hero-thumb-photo"
-                        sizes="120px"
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="home-hero-copy">
-                <p className="customer-eyebrow">Fresh from {menu.outlet.name}</p>
-                <h1 id="home-hero-title">
-                  <span className="script">Signature</span>
-                  <span className="home-hero-title-line">Hyderabadi Biryani</span>
-                </h1>
-                <p>Fragrant basmati rice, marinated meat and authentic spices, dum-cooked to perfection.</p>
-                <div className="home-hero-actions">
-                  <Button variant="primary" className="home-hero-order" onClick={scrollToMenu}>
-                    Order now <span aria-hidden="true">→</span>
-                  </Button>
-                  <span className={`hero-delivery ${menu.outlet.is_open ? "is-open" : "is-closed"}`}>
-                    <span aria-hidden="true">●</span> {menu.outlet.is_open ? "Open now · Delivery in about 35 min" : "Closed now · Order when we open"}
-                  </span>
-                </div>
-              </div>
-              <span className="home-hero-edge" aria-hidden="true" />
-            </section>
-          )}
+
 
           {browseFirst && (
             <section className="home-discovery" aria-label="Discover the menu">
@@ -824,6 +779,6 @@ export function MenuScreen({
         <div><span>Prices include 5% GST</span><Link href="/privacy">Privacy</Link></div>
         <span>Outlet: {menu.outlet.name}{menu.outlet.address ? ` · ${menu.outlet.address}` : ""}</span>
       </footer>}
-    </main>
+    </Root>
   );
 }

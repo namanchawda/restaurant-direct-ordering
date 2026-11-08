@@ -525,6 +525,8 @@ export function CheckoutScreen() {
     outlet && deliveryDistance !== null
       ? deliveryDistance > outlet.delivery_radius_km
       : false;
+  const placeDisabled =
+    submitting || cancellingOrder || outletLoading || !outlet || !coords || outsideRadius || !outlet.is_open;
   const signedInCustomer = user?.role === "customer";
 
   function renderAuth() {
@@ -563,7 +565,7 @@ export function CheckoutScreen() {
           {!signedInCustomer ? (
             renderAuth()
           ) : (
-            <form className="checkout-form" onSubmit={placeOrder} noValidate>
+              <form id="checkout-form" className="checkout-form" onSubmit={placeOrder} noValidate>
               <Card className="checkout-card checkout-contact-card">
                 <div className="checkout-contact-row">
                   <div>
@@ -577,8 +579,9 @@ export function CheckoutScreen() {
                 </div>
               </Card>
 
-              <Card className="checkout-card offers-rewards-card">
+              <Card className="checkout-card checkout-section offers-section offers-rewards-card">
                 <div className="checkout-card-heading-row">
+                  <span className="checkout-step-number">3</span>
                   <div><p className="checkout-step-label">Offers and rewards</p><h2>Save on this order</h2></div>
                   {loyalty && <Badge tone="success">{loyalty.balance_points} pts</Badge>}
                 </div>
@@ -638,8 +641,9 @@ export function CheckoutScreen() {
                 ) : <p className="checkout-hint">Sign in to use points.</p>}
               </Card>
 
-              <Card className="checkout-card">
+              <Card className="checkout-card checkout-section delivery-section">
                 <div className="checkout-card-heading-row">
+                  <span className="checkout-step-number">1</span>
                   <div>
                     <p className="checkout-step-label">Delivery</p>
                     <h2>Where should we bring it?</h2>
@@ -793,8 +797,9 @@ export function CheckoutScreen() {
                 ) : null}
               </Card>
 
-              <Card className="checkout-card">
+              <Card className="checkout-card checkout-section payment-section">
                 <div className="checkout-card-heading-row">
+                  <span className="checkout-step-number">2</span>
                   <div>
                     <p className="checkout-step-label">Payment</p>
                     <h2>How would you like to pay?</h2>
@@ -916,7 +921,7 @@ export function CheckoutScreen() {
                 )}
               </Card>
 
-              <Card className="checkout-card checkout-submit-card">
+              <Card className="checkout-card checkout-submit-card submit-section">
                 {priceChanged && order && (
                   <div className="checkout-price-change" role="status">
                     <strong>The kitchen updated your total to {formatINR(order.total_inr)}.</strong>
@@ -1046,6 +1051,17 @@ export function CheckoutScreen() {
             <p className="checkout-summary-arrival">You will earn {quote?.earn_points ?? order?.earn_points ?? Math.floor(subtotal / 10)} points when delivered.</p>
           </Card>
         </aside>
+
+        <div className="checkout-place-bar">
+          <button
+            type="submit"
+            form="checkout-form"
+            className="button button-primary checkout-place-bar-button"
+            disabled={placeDisabled}
+          >
+            PLACE ORDER · {formatINR(displayTotal)}
+          </button>
+        </div>
       </div>
     </main>
   );
