@@ -68,6 +68,7 @@ body .heart-toggle-on { background: var(--hb-red); color: var(--hb-cream); anima
 body .home-promo-card { border-radius: 24px; border: 2px solid var(--hb-ink); box-shadow: 0 6px 0 var(--hb-ink); }
 body .home-promo-party { background: var(--hb-red); color: var(--hb-cream); }
 body .home-promo-party h2 { font-family: var(--hb-display); font-weight: 400; color: var(--hb-cream); }
+body .home-promo-party .home-promo-party-copy p:not(.customer-eyebrow) { color: var(--hb-cream); }
 body .home-promo-party .customer-eyebrow { color: var(--hb-saffron); }
 body .home-promo-party .button-primary { background: var(--hb-saffron); color: var(--hb-ink); border-color: var(--hb-ink); box-shadow: 0 4px 0 var(--hb-ink); }
 body .home-promo-perks { background: var(--hb-saffron); color: var(--hb-ink); font-weight: 700; }

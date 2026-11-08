@@ -238,16 +238,18 @@ button { color: inherit; }
 
 .veg-mark {
   display: inline-grid;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   flex: none;
   place-items: center;
-  border: 1.5px solid #257246;
-  border-radius: 2px;
+  background: #fff;
+  border: 2px solid #257246;
 }
-.veg-mark > span { width: 7px; height: 7px; border-radius: 50%; background: #257246; }
-.veg-mark-nonveg { border-color: #a44c3d; clip-path: polygon(50% 0, 100% 100%, 0 100%); background: transparent; }
-.veg-mark-nonveg > span { width: 6px; height: 6px; margin-top: 5px; background: #a44c3d; }
+.veg-mark-veg { border-color: #1F7A3E; }
+.veg-mark > span { width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+.veg-mark-veg > span { background: #1F7A3E; }
+.veg-mark-nonveg { border-color: #B3261E; background: #fff; }
+.veg-mark-nonveg > span { width: 10px; height: 10px; background: #B3261E; }
 
 .price { display: inline-flex; flex-direction: column; align-items: flex-start; font-weight: 700; line-height: 1.25; white-space: nowrap; }
 .gst-note { margin-top: 3px; color: var(--muted); font-size: 14px; font-weight: 500; }
@@ -1011,7 +1013,6 @@ button { color: inherit; }
   .menu-search { height: 44px; }
   .menu-search input { font-size: 14px; }
   .veg-filter { gap: 6px; font-size: 14px; }
-  .veg-filter .veg-mark { width: 16px; height: 16px; }
   .category-tabs { gap: 4px; padding: 5px 16px; }
   .category-tab { min-height: 44px; padding: 0 11px; font-size: 14px; }
   .category-tab-closed { padding: 1px 7px; font-size: 14px; }
@@ -1025,7 +1026,6 @@ button { color: inherit; }
   .menu-item-main { gap: 8px; }
   .menu-item-name-row { gap: 6px; }
   .menu-item-name-row strong { font-size: 15px; }
-  .menu-item-name-row .veg-mark { width: 16px; height: 16px; }
   .menu-item-description { font-size: 14px; line-height: 1.35; }
   .menu-item-meta .price { font-size: 15px; }
   .spice-level { font-size: 14px; }
@@ -1727,13 +1727,13 @@ button.dish-row-main:hover .dish-row-copy strong { color: var(--brand-deep); }
 }
 
 /* Browse-first ordering home */
-.account-sign-in { min-height: 44px; border: 0; background: transparent; color: var(--brand-deep); cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; }
+.account-sign-in { min-height: 44px; border: 2px solid var(--ink); border-radius: 999px; background: #fff; color: var(--ink); cursor: pointer; font: inherit; font-size: 14px; font-weight: 700; }
 /* Shared site header: white rounded pill bar */
 .site-header { position: sticky; top: 0; z-index: 30; background: var(--brand); color: #fff; padding: 10px 0; }
 .site-header-shell { position: relative; max-width: 1280px; margin: 0 auto; padding: 0 20px; }
 .site-header-bar { display: flex; align-items: center; gap: 16px; }
 .site-brand { flex: none; gap: 8px; }
-.site-wordmark { font-family: var(--font-heading), var(--font-sans); text-transform: uppercase; font-size: 18px; line-height: 1; letter-spacing: -0.01em; color: var(--canvas); }
+.site-wordmark { font-family: var(--font-heading), var(--font-sans); text-transform: uppercase; font-size: 17px; line-height: 1; letter-spacing: -0.01em; color: var(--ink); }
 .site-nav { display: flex; flex: 1 1 auto; min-width: max-content; align-items: center; justify-content: center; gap: 1px; }
 .site-nav-link { display: inline-flex; min-height: 44px; align-items: center; padding: 0 12px; border-bottom: 3px solid transparent; color: #fff; font-size: 15px; font-weight: 700; white-space: nowrap; }
 .site-nav-link:hover { border-bottom-color: var(--canvas); }
