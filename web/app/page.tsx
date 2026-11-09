@@ -3,6 +3,7 @@ import { HomeHero } from "@/components/customer/HomeHero";
 import { LandingSections } from "@/components/customer/LandingSections";
 import { LandingBuilder } from "@/components/customer/LandingBuilder";
 import { LandingStory } from "@/components/customer/LandingStory";
+import { LandingRewards } from "@/components/customer/LandingRewards";
 import "@/components/customer/home-theme.css";
 import "@/components/customer/components-theme.css";
 
@@ -15,6 +16,7 @@ export default function Home() {
       <LandingSections />
       <LandingBuilder />
       <LandingStory />
+      <LandingRewards />
     </main>
   );
 }
