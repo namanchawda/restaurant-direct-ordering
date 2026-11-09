@@ -4,11 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Button, useToast } from "@/components/ui";
 import { useCart } from "@/components/customer/CartProvider";
-import { api, describeApiError } from "@/lib/api";
-import { LOCATION_STORAGE_KEY, OUTLET_STORAGE_KEY, formatINR } from "@/lib/customer";
-import type { MenuItem, OutletMenu, OutletResult } from "@/lib/customer";
-import { selectDefaultOutlet } from "@/lib/outlet-selection";
+import { describeApiError } from "@/lib/api";
+import { formatINR } from "@/lib/customer";
+import type { MenuItem, OutletResult } from "@/lib/customer";
 import { makeCartLine } from "@/lib/cart";
+import { loadLandingData, invalidateLandingData } from "@/lib/landing-data";
 
 export function LandingBuilder() {
   const toast = useToast();
@@ -26,39 +26,38 @@ export function LandingBuilder() {
 
   useEffect(() => {
     let active = true;
-    async function load() {
-      let lat = 17.4649;
-      let lng = 78.3639;
-      let remembered: string | null = null;
-      try {
-        remembered = window.localStorage.getItem(OUTLET_STORAGE_KEY);
-        const raw = window.localStorage.getItem(LOCATION_STORAGE_KEY);
-        if (raw) {
-          const area = JSON.parse(raw) as { lat: number; lng: number };
-          if (typeof area?.lat === "number" && typeof area?.lng === "number") { lat = area.lat; lng = area.lng; }
-        }
-      } catch { /* use defaults */ }
-      try {
-        const outlets = await api<OutletResult[]>(`/outlets?lat=${lat}&lng=${lng}`);
-        const picked = selectDefaultOutlet(outlets, remembered);
-        if (!picked) throw new Error("No outlet found");
-        const menu = await api<OutletMenu>(`/outlets/${picked.id}/menu`);
+
+    loadLandingData()
+      .then((data) => {
         if (!active) return;
+        if (!data.pickedOutlet) {
+          setError("No outlet found");
+          setLoading(false);
+          return;
+        }
+        const menu = data.menu;
+        if (!menu) {
+          setLoading(false);
+          return;
+        }
         const biryanis = menu.categories
           .filter((category) => category.available_now && category.name.toLowerCase().includes("biryani"))
           .flatMap((category) => category.items)
           .filter((item) => item.available && item.variants.length > 0);
-        setOutlet(picked);
+        setOutlet(data.pickedOutlet);
         setDishes(biryanis);
         setDishId(biryanis[0]?.id ?? "");
         setVariantId(biryanis[0]?.variants[0]?.id ?? null);
-      } catch (reason) {
-        if (active) setError(describeApiError(reason, "We couldn't load the builder. Please try again."));
-      } finally {
+        setLoading(false);
+      })
+      .catch((reason) => {
+        if (!active) return;
+        setError(describeApiError(reason, "We couldn't load the builder. Please try again."));
+      })
+      .finally(() => {
         if (active) setLoading(false);
-      }
-    }
-    void load();
+      });
+
     return () => { active = false; };
   }, [reload]);
 
@@ -88,7 +87,7 @@ export function LandingBuilder() {
       <section className="landing-builder" role="alert">
         <div className="landing-builder-inner landing-error">
           <p>{error}</p>
-          <Button variant="secondary" onClick={() => { setError(null); setLoading(true); setReload((n) => n + 1); }}>Try again</Button>
+          <Button variant="secondary" onClick={() => { invalidateLandingData(); setLoading(true); setReload((n) => n + 1); }}>Try again</Button>
         </div>
       </section>
     );

@@ -9,9 +9,14 @@ import { LandingFooter } from "@/components/customer/LandingFooter";
 import "@/components/customer/home-theme.css";
 import "@/components/customer/components-theme.css";
 
+export const metadata = {
+  title: "Hyderabad Biryani | Order direct",
+  description: "Dum biryani, haleem and Hyderabadi classics from your nearest kitchen. Order direct, earn points.",
+};
+
 export default function Home() {
   return (
-    <main className="customer-page hb-themed">
+    <main id="top" className="customer-page hb-themed">
       <div className="hb-checker" aria-hidden="true" />
       <SiteHeader />
       <HomeHero />

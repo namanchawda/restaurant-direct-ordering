@@ -4,13 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Button, useToast, VegMark } from "@/components/ui";
 import { FoodImage } from "@/components/customer/FoodImage";
-import { api, describeApiError } from "@/lib/api";
-import { OUTLET_STORAGE_KEY, LOCATION_STORAGE_KEY, formatINR } from "@/lib/customer";
-import type { MenuItem, OutletMenu, OutletResult } from "@/lib/customer";
-import { selectDefaultOutlet } from "@/lib/outlet-selection";
+import { describeApiError } from "@/lib/api";
+import { formatINR } from "@/lib/customer";
+import type { MenuItem, OutletResult } from "@/lib/customer";
 import { useCart } from "@/components/customer/CartProvider";
 import { makeCartLine } from "@/lib/cart";
 import { flyToCart } from "@/lib/fly-to-cart";
+import { loadLandingData, invalidateLandingData } from "@/lib/landing-data";
 
 const TARGET_NAMES = ["Chicken dum biryani", "Mutton haleem", "Veg biryani", "Seekh kebab"];
 const IMAGE_BY_NAME: Record<string, string> = {
@@ -44,37 +44,24 @@ export function LandingSections() {
   useEffect(() => {
     active.current = true;
 
-    async function load() {
-      let remembered: string | null = null;
-      let lat = 17.4649;
-      let lng = 78.3639;
-
-      if (typeof window !== "undefined") {
-        remembered = window.localStorage.getItem(OUTLET_STORAGE_KEY);
-        try {
-          const raw = window.localStorage.getItem(LOCATION_STORAGE_KEY);
-          if (raw) {
-            const area = JSON.parse(raw) as { lat: number; lng: number };
-            if (area?.lat && typeof area.lat === "number" && area?.lng && typeof area.lng === "number") {
-              lat = area.lat;
-              lng = area.lng;
-            }
-          }
-        } catch { /* fall through to defaults */ }
-      }
-
-      try {
-        const outlets = await api<OutletResult[]>(`/outlets?lat=${lat}&lng=${lng}`);
+    loadLandingData()
+      .then((data) => {
         if (!active.current) return;
-        const picked = selectDefaultOutlet(outlets, remembered);
-        if (!picked) throw new Error("No outlet found");
-        setOutlet(picked);
+        if (!data.pickedOutlet) {
+          setError("No outlet found");
+          setLoading(false);
+          return;
+        }
+        setOutlet(data.pickedOutlet);
 
-        const menuData = await api<OutletMenu>(`/outlets/${picked.id}/menu`);
-        if (!active.current) return;
+        const menu = data.menu;
+        if (!menu) {
+          setLoading(false);
+          return;
+        }
 
-        const items = menuData.categories.flatMap((cat) => cat.items);
-        setPool(menuData.categories.flatMap((cat) => cat.items.map((item) => ({ category: cat.name.toLowerCase(), item }))));
+        const items = menu.categories.flatMap((cat) => cat.items);
+        setPool(menu.categories.flatMap((cat) => cat.items.map((item) => ({ category: cat.name.toLowerCase(), item }))));
         const pickedItems: MenuItem[] = [];
         for (const name of TARGET_NAMES) {
           const found = items.find((item) => item.name === name);
@@ -88,15 +75,14 @@ export function LandingSections() {
           }
         }
         setLineup(pickedItems);
-      } catch (err) {
+        setLoading(false);
+      })
+      .catch((err) => {
         if (!active.current) return;
         setError(describeApiError(err, "We couldn't load the menu. Please try again."));
-      } finally {
-        if (active.current) setLoading(false);
-      }
-    }
+        setLoading(false);
+      });
 
-    load();
     return () => { active.current = false; };
   }, [reloadKey]);
 
@@ -111,6 +97,7 @@ export function LandingSections() {
   );
 
   const retry = useCallback(() => {
+    invalidateLandingData();
     setLoading(true);
     setError(null);
     setReloadKey((k) => k + 1);

@@ -7,6 +7,7 @@ export function LandingFooter() {
       <div className="landing-footer-inner">
         <p className="landing-footer-mark" aria-hidden="true">biryani</p>
         <nav className="landing-footer-links" aria-label="Footer">
+          <Link href="#top">Back to top</Link>
           <Link href="/menu">Menu</Link>
           <Link href="/party">Party orders</Link>
           <Link href="/rewards">Rewards</Link>

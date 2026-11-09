@@ -2,10 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { api } from "@/lib/api";
-import { LOCATION_STORAGE_KEY, OUTLET_STORAGE_KEY } from "@/lib/customer";
-import type { OutletMenu, OutletResult } from "@/lib/customer";
-import { selectDefaultOutlet } from "@/lib/outlet-selection";
+import { describeApiError } from "@/lib/api";
+import { loadLandingData, invalidateLandingData } from "@/lib/landing-data";
 
 /* Edit these three points so they describe what your kitchen really does. */
 const POINTS = [
@@ -37,37 +35,59 @@ export function LandingStory() {
   const [windowText, setWindowText] = useState<string | null>(null);
   const [now, setNow] = useState<Date | null>(null);
   const [photoFailed, setPhotoFailed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
-    async function load() {
-      let lat = 17.4649;
-      let lng = 78.3639;
-      let remembered: string | null = null;
-      try {
-        remembered = window.localStorage.getItem(OUTLET_STORAGE_KEY);
-        const raw = window.localStorage.getItem(LOCATION_STORAGE_KEY);
-        if (raw) {
-          const area = JSON.parse(raw) as { lat: number; lng: number };
-          if (typeof area?.lat === "number" && typeof area?.lng === "number") { lat = area.lat; lng = area.lng; }
+
+    loadLandingData()
+      .then((data) => {
+        if (!active) return;
+        if (!data.pickedOutlet) {
+          setLoading(false);
+          return;
         }
-        const outlets = await api<OutletResult[]>(`/outlets?lat=${lat}&lng=${lng}`);
-        const picked = selectDefaultOutlet(outlets, remembered);
-        if (!picked) return;
-        const menu = await api<OutletMenu>(`/outlets/${picked.id}/menu`);
-        const haleem = menu.categories.find((c) => c.name.toLowerCase().includes("haleem"));
-        if (active && haleem) setWindowText(haleem.window_text);
-      } catch { /* the section falls back to the default window */ }
-    }
-    void load();
+        const menu = data.menu;
+        if (menu) {
+          const haleem = menu.categories.find((c) => c.name.toLowerCase().includes("haleem"));
+          if (haleem) setWindowText(haleem.window_text);
+        }
+        setLoading(false);
+      })
+      .catch((reason) => {
+        if (!active) return;
+        setError(describeApiError(reason, "We couldn't load the kitchen details. Please try again."));
+        setLoading(false);
+      });
+
     return () => { active = false; };
   }, []);
 
   useEffect(() => {
+    if (!loading) return;
     const first = window.setTimeout(() => setNow(new Date()), 0);
     const timer = window.setInterval(() => setNow(new Date()), 30000);
     return () => { window.clearTimeout(first); window.clearInterval(timer); };
-  }, []);
+  }, [loading]);
+
+  const retry = () => {
+    invalidateLandingData();
+    setLoading(true);
+    setError(null);
+  };
+
+  if (error) {
+    return (
+      <section className="landing-story" role="alert">
+        <div className="hb-checker" aria-hidden="true" />
+        <div className="landing-story-inner">
+          <p>{error}</p>
+          <button type="button" onClick={retry}>Try again</button>
+        </div>
+      </section>
+    );
+  }
 
   const [start, end] = parseWindow(windowText);
   const current = now ? istMinutes(now) : null;

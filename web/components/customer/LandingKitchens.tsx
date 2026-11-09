@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button, useToast } from "@/components/ui";
-import { api, describeApiError } from "@/lib/api";
-import { LOCATION_STORAGE_KEY, OUTLET_STORAGE_KEY } from "@/lib/customer";
+import { describeApiError } from "@/lib/api";
+import { OUTLET_STORAGE_KEY } from "@/lib/customer";
 import type { OutletResult } from "@/lib/customer";
+import { loadLandingData, invalidateLandingData } from "@/lib/landing-data";
 
 export function LandingKitchens() {
   const toast = useToast();
@@ -18,33 +19,29 @@ export function LandingKitchens() {
 
   useEffect(() => {
     let active = true;
-    async function load() {
-      let lat = 17.4649;
-      let lng = 78.3639;
-      try {
-        setSelected(window.localStorage.getItem(OUTLET_STORAGE_KEY));
-        const raw = window.localStorage.getItem(LOCATION_STORAGE_KEY);
-        if (raw) {
-          const area = JSON.parse(raw) as { lat: number; lng: number };
-          if (typeof area?.lat === "number" && typeof area?.lng === "number") { lat = area.lat; lng = area.lng; }
+
+    loadLandingData()
+      .then((data) => {
+        if (!active) return;
+        setOutlets(data.outlets);
+        if (!selected) {
+          setSelected(window.localStorage.getItem(OUTLET_STORAGE_KEY));
         }
-      } catch { /* defaults */ }
-      try {
-        const result = await api<OutletResult[]>(`/outlets?lat=${lat}&lng=${lng}`);
-        if (active) setOutlets(result);
-      } catch (reason) {
-        if (active) setError(describeApiError(reason, "We couldn't load our kitchens. Please try again."));
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-    void load();
+        setLoading(false);
+      })
+      .catch((reason) => {
+        if (!active) return;
+        setError(describeApiError(reason, "We couldn't load our kitchens. Please try again."));
+        setLoading(false);
+      });
+
     return () => { active = false; };
-  }, [reload]);
+  }, [reload, selected]);
 
   function choose(outlet: OutletResult) {
     window.localStorage.setItem(OUTLET_STORAGE_KEY, outlet.id);
     setSelected(outlet.id);
+    invalidateLandingData();
     toast(`${outlet.name} is now your kitchen.`, "success");
   }
 
@@ -57,7 +54,7 @@ export function LandingKitchens() {
           {error ? (
             <div role="alert" className="landing-error">
               <p>{error}</p>
-              <Button variant="secondary" onClick={() => { setError(null); setLoading(true); setReload((n) => n + 1); }}>Try again</Button>
+              <Button variant="secondary" onClick={() => { invalidateLandingData(); setError(null); setLoading(true); setReload((n) => n + 1); }}>Try again</Button>
             </div>
           ) : loading ? (
             <div className="landing-skeleton-card" />
