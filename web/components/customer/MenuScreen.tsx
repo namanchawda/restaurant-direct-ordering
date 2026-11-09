@@ -3,24 +3,19 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
-import { Button, Card, Price, Skeleton, VegMark, useToast } from "@/components/ui";
-import { CartSummary } from "@/components/customer/CartSummary";
+import { Button, Price, Skeleton, VegMark, useToast } from "@/components/ui";
 import { QuantityStepper } from "@/components/customer/QuantityStepper";
-import { SiteHeader } from "@/components/customer/SiteHeader";
 import { useCart } from "@/components/customer/CartProvider";
 import { FoodImage } from "@/components/customer/FoodImage";
 import { HeartToggle } from "@/components/customer/HeartToggle";
 import { api, describeApiError, addFavourite, listFavourites, removeFavourite } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import {
-  cartItemCount,
   cartLineIdentity,
-  cartSubtotal,
   makeCartLine,
 } from "@/lib/cart";
 import type { CartLine } from "@/lib/cart";
-import { FREE_DELIVERY_THRESHOLD_INR } from "@/lib/checkout";
-import { formatINR, servedWindow } from "@/lib/customer";
+import { formatINR } from "@/lib/customer";
 import type { MenuItem, OutletMenu } from "@/lib/customer";
 import { openOrderAgainItem } from "@/lib/order-suggestions";
 import { flyToCart } from "@/lib/fly-to-cart";
@@ -40,31 +35,7 @@ const ALLERGEN_LABELS: Record<string, string> = {
   sesame: "Sesame",
 };
 
-function SpiceChili({ active }: { active: boolean }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path
-        d="M7 0.5 C4 0.5 3 4 4 7 C5 10 7 13 9 11 C10 9 11 6 10.5 3 C10 1 7 0.5 7 0.5 Z"
-        fill="currentColor"
-        fillOpacity={active ? 1 : 0.25}
-      />
-    </svg>
-  );
-}
-
-function SpiceLevel({ level }: { level: number }) {
-  const label = ["No heat", "Mild", "Medium", "Hot"][Math.max(0, Math.min(3, level))];
-  return (
-    <span className="spice-level" aria-label={`Spice level: ${label}`}>
-      <span aria-hidden="true">
-        {Array.from({ length: 3 }, (_, index) => (
-          <SpiceChili key={index} active={index < level} />
-        ))}
-      </span>
-      <span>{label}</span>
-    </span>
-  );
-}
+const TINTS = ["landing-tint-red", "landing-tint-white", "landing-tint-tan", "landing-tint-ink"];
 
 function ItemCard({
   item,
@@ -74,6 +45,7 @@ function ItemCard({
   onToggleFavourite,
   priority = false,
   outletId,
+  tint,
 }: {
   item: MenuItem;
   categoryAvailable: boolean;
@@ -82,6 +54,7 @@ function ItemCard({
   onToggleFavourite: () => void;
   priority?: boolean;
   outletId: string;
+  tint: string;
 }) {
   const available = categoryAvailable && item.available;
   const { cart, addLine, setQuantity, removeLine } = useCart();
@@ -120,44 +93,32 @@ function ItemCard({
   }
 
   return (
-    <Card className={`menu-item-card${!available ? " menu-item-unavailable" : ""}`}>
+    <article className={`landing-card ${tint}${!available ? " landing-card-unavailable" : ""}`}>
       <button
         type="button"
-        className="menu-item-main"
+        className="landing-card-link"
         onClick={() => onOpen(item)}
         onKeyDown={handleCardKeyDown}
         aria-label={`View ${item.name} details`}
       >
-        <FoodImage
-          src={item.photo_url}
-          name={item.name}
-          isVeg={item.is_veg}
-          className="menu-item-photo"
-          priority={priority}
-          sizes="(max-width: 680px) 46vw, 230px"
-        />
-        <span className="menu-item-name-row">
-          <strong>{item.name}</strong>
-          <VegMark isVeg={item.is_veg} />
-        </span>
+        <div className="landing-card-visual">
+          <FoodImage
+            src={item.photo_url}
+            name={item.name}
+            isVeg={item.is_veg}
+            className="landing-card-photo"
+            priority={priority}
+            sizes="(max-width: 680px) 46vw, 280px"
+          />
+        </div>
+        <h3 className="landing-card-name">{item.name}</h3>
+        <p className="landing-card-desc">{item.description}</p>
       </button>
-      <div className="menu-item-heart">
-        <HeartToggle itemId={item.id} isFavourite={isFavourite} onToggle={onToggleFavourite} />
-      </div>
-      <p className="menu-item-description">{item.description}</p>
-      <div className="menu-item-meta">
-        <SpiceLevel level={item.spice_level} />
+      <div className="landing-card-foot">
+        <span className="landing-card-price">{formatINR(item.price)}</span>
+        <VegMark isVeg={item.is_veg} />
         {available ? (
-          <Price amount={item.price} showGst={false} />
-        ) : (
-          <span className="unavailable-label">
-            {!categoryAvailable ? "Served later" : "Unavailable"}
-          </span>
-        )}
-      </div>
-      {available && (
-        <div className="menu-item-action">
-          {quantity > 0 ? (
+          quantity > 0 ? (
             <QuantityStepper
               quantity={quantity}
               label={`Quantity of ${item.name}`}
@@ -165,13 +126,22 @@ function ItemCard({
               onIncrease={handleIncrease}
             />
           ) : (
-            <Button variant="primary" className="menu-add-button" onClick={(event: React.MouseEvent<HTMLElement>) => handleAdd(event.currentTarget)}>
-              Add to Cart +
-            </Button>
-          )}
-        </div>
-      )}
-    </Card>
+            <button
+              type="button"
+              className="landing-add-button"
+              aria-label={`Add ${item.name} to cart`}
+              onClick={(event) => handleAdd(event.currentTarget)}
+            >
+              +
+            </button>
+          )
+        ) : (
+          <span className="landing-unavailable">
+            {!categoryAvailable ? "Served later" : "Unavailable"}
+          </span>
+        )}
+      </div>
+    </article>
   );
 }
 
@@ -266,7 +236,6 @@ function ItemSheet({
                 </div>
                 <p>{item.description}</p>
               </div>
-              <SpiceLevel level={item.spice_level} />
             </div>
             <p className="sheet-gst-note">Prices incl. 5% GST</p>
 
@@ -327,16 +296,9 @@ function ItemSheet({
 
 function MenuSkeleton() {
   return (
-        <div className="menu-skeleton" role="status" aria-label="Loading menu">
+    <div className="landing-grid" role="status" aria-label="Loading menu">
       {[0, 1, 2, 3].map((key) => (
-        <Card className="menu-skeleton-card" key={key}>
-          <Skeleton className="menu-skeleton-photo" />
-          <div className="menu-skeleton-copy">
-            <Skeleton className="skeleton-line skeleton-title" />
-            <Skeleton className="skeleton-line" />
-            <Skeleton className="skeleton-line skeleton-short" />
-          </div>
-        </Card>
+        <div key={key} className="landing-skeleton-card" />
       ))}
     </div>
   );
@@ -368,7 +330,6 @@ export function MenuScreen({
   const [ownSearch, setOwnSearch] = useState("");
   const search = searchProp ?? ownSearch;
   const setSearch = onSearch ?? setOwnSearch;
-  const [activeCategory, setActiveCategory] = useState("");
   const [activeItem, setActiveItem] = useState<MenuItem | null>(null);
   const [suggestionResult, setSuggestionResult] = useState<{
     key: string;
@@ -385,12 +346,11 @@ export function MenuScreen({
         const result = await api<OutletMenu>(`/outlets/${outletId}/menu`);
         if (!active) return;
         setMenu(result);
-        setActiveCategory(result.categories[0]?.id ?? "");
         setError(null);
       } catch (requestError) {
         if (!active) return;
         setMenu(null);
-        setError(describeApiError(requestError, "We couldn’t load this menu."));
+        setError(describeApiError(requestError, "We couldn't load this menu."));
       } finally {
         if (active) setLoading(false);
       }
@@ -422,7 +382,7 @@ export function MenuScreen({
         if (active) {
           setSuggestionFailure({
             key: suggestionKey,
-            message: describeApiError(error, "Saved dishes couldn’t load."),
+            message: describeApiError(error, "Saved dishes couldn't load."),
           });
         }
       });
@@ -462,325 +422,93 @@ export function MenuScreen({
     }
   }
 
+  // Category filters (matching landing lineup)
+  const FILTERS = [
+    { label: "All", match: null as string | null },
+    { label: "Biryani", match: "biryani" },
+    { label: "Kebabs", match: "kebab" },
+    { label: "Curries", match: "curr" },
+    { label: "Sides", match: "bread" },
+  ];
+  const [filterIndex, setFilterIndex] = useState(0);
+
   useEffect(() => {
     if (menu) revalidate(menu);
   }, [menu, revalidate]);
 
-  const visibleCategories = useMemo(() => {
+  // Flatten all items from all categories with category info
+  const allItems = useMemo(() => {
+    if (!menu) return [];
+    return menu.categories.flatMap((category) =>
+      category.items.map((item) => ({ ...item, category: category.name.toLowerCase() }))
+    );
+  }, [menu]);
+
+  // Apply filters
+  const filteredItems = useMemo(() => {
     if (!menu) return [];
     const query = search.trim().toLocaleLowerCase();
-    return menu.categories
-      .map((category) => ({
-        ...category,
-        items: category.items.filter((item) =>
-          (!vegOnly || item.is_veg) &&
-          (!query || `${item.name} ${item.description}`.toLocaleLowerCase().includes(query)),
-        ),
-      }))
-      .filter((category) => category.items.length > 0);
-  }, [menu, search, vegOnly]);
-
-  useEffect(() => {
-    if (!visibleCategories.length) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((left, right) => left.boundingClientRect.top - right.boundingClientRect.top)[0];
-        if (visible) setActiveCategory(visible.target.id.replace("category-", ""));
-      },
-      { rootMargin: "-170px 0px -65% 0px", threshold: 0 },
+    const activeFilter = FILTERS[filterIndex];
+    return allItems.filter((item) =>
+      (!vegOnly || item.is_veg) &&
+      (!query || `${item.name} ${item.description}`.toLocaleLowerCase().includes(query)) &&
+      (!activeFilter.match || item.category.includes(activeFilter.match))
     );
-    visibleCategories.forEach((category) => {
-      const section = document.getElementById(`category-${category.id}`);
-      if (section) observer.observe(section);
-    });
-    return () => observer.disconnect();
-  }, [visibleCategories]);
+  }, [allItems, search, vegOnly, filterIndex]);
 
-  useEffect(() => {
-    if (cart.outletId && cart.outletId !== outletId && cart.lines.length > 0) {
-      toast("This cart belongs to another kitchen. Change back to that kitchen to continue.", "error");
-    }
-  }, [cart.lines.length, cart.outletId, outletId, toast]);
+  const availableItemCount = filteredItems.filter((item) => item.available).length;
 
-  function jumpToCategory(categoryId: string) {
-    setActiveCategory(categoryId);
-    document.getElementById(`category-${categoryId}`)?.scrollIntoView({
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-      block: "start",
-    });
-  }
-
-  function scrollToMenu() {
-    document.getElementById("menu-section")?.scrollIntoView({
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-      block: "start",
-    });
-  }
-
-  const availableItemCount = menu?.categories.reduce(
-    (count, category) =>
-      count + (category.available_now ? category.items.filter((item) => item.available).length : 0),
-    0,
-  ) ?? 0;
-  const total = cartSubtotal(cart.lines);
-  const menuItems = menu?.categories.flatMap((category) => category.items) ?? [];
-  const suggestions = suggestionResult?.key === suggestionKey
-    ? suggestionResult.suggestions
-    : [];
-  const suggestionError = suggestionFailure?.key === suggestionKey
-    ? suggestionFailure.message
-    : "";
-  const orderAgainItems = suggestions
-    .map((suggestion) => menuItems.find((item) => item.id === suggestion.item_id))
-    .filter((item): item is MenuItem => Boolean(item?.available));
-
-  const orderAgainBlock = (
-    <>
-      {orderAgainItems.length > 0 && (
-        <section className="order-again" aria-labelledby="order-again-heading">
-          <div className="home-row-heading">
-            <p className="customer-eyebrow">From your order history</p>
-            <h2 id="order-again-heading">Order again</h2>
-          </div>
-          <div className="order-again-list">
-            {orderAgainItems.map((item) => (
-              <article className="dish-row-card" key={item.id}>
-                <button
-                  type="button"
-                  className="dish-row-main"
-                  onClick={() => openOrderAgainItem(item, setActiveItem)}
-                  aria-label={`View ${item.name} details`}
-                >
-                  <FoodImage
-                    src={item.photo_url}
-                    name={item.name}
-                    isVeg={item.is_veg}
-                    className="dish-row-photo"
-                    sizes="72px"
-                  />
-                  <span className="dish-row-copy">
-                    <strong>{item.name}</strong>
-                    <span>{formatINR(item.price)}</span>
-                  </span>
-                </button>
-                <HeartToggle
-                  itemId={item.id}
-                  isFavourite={favouriteIds.has(item.id)}
-                  onToggle={() => toggleFavourite(item.id)}
-                />
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-      {suggestionError && (
-        <div className="order-again-error" role="alert">
-          <span>{suggestionError}</span>
-          <button
-            type="button"
-            onClick={() => setSuggestionRequestVersion((version) => version + 1)}
-          >
-            Try again
-          </button>
-        </div>
-      )}
-    </>
-  );
-
-  const Root = browseFirst ? "div" : "main";
+  const Root = "div";
 
   return (
     <Root className="customer-page menu-page">
       {menu && (
         <>
-          {!browseFirst && (
-            <SiteHeader onOpenCart={onOpenCart} search={search} onSearch={setSearch} />
-          )}
-          <div className="menu-header">
-            {!browseFirst && (
-              <>
-                <div className="menu-header-main">
-                  <div className="menu-outlet-title"><p className="customer-eyebrow">Fresh from the kitchen</p><h1>{menu.outlet.name}</h1></div>
-                  <div className="menu-header-actions">
-                    <span className={`outlet-status ${menu.outlet.is_open ? "is-open" : "is-closed"}`}>
-                      <span aria-hidden="true" />
-                      {menu.outlet.is_open ? "Open now" : "Closed"}
-                    </span>
-                    <Link className="change-link" href="/?change=1">Change</Link>
-                  </div>
-                </div>
-                <p className="menu-header-details">
-                  FSSAI {menu.outlet.fssai_number}
-                  {menu.outlet.type === "cloud_kitchen" && <span className="cloud-kitchen-label">Cloud kitchen</span>}
-                </p>
-              </>
-            )}
-            <p className="menu-gst-note">All menu prices {menu.price_note}</p>
-          </div>
-
-
-
-          {browseFirst && (
-            <section className="home-discovery" aria-label="Discover the menu">
-              <nav className="home-chips" aria-label="Categories">
-                {menu.categories.map((category) => (
+          <div className="hb-checker" aria-hidden="true" />
+          <div className="landing-lineup-inner">
+            <div className="landing-lineup-header">
+              <h2>THE MENU</h2>
+              <div className="landing-filters" role="group" aria-label="Filter the menu">
+                {FILTERS.map((entry, index) => (
                   <button
                     type="button"
-                    key={category.id}
-                    className={activeCategory === category.id ? "home-chip is-active" : "home-chip"}
-                    onClick={() => jumpToCategory(category.id)}
-                    aria-current={activeCategory === category.id ? "location" : undefined}
+                    key={entry.label}
+                    className={`landing-filter${filterIndex === index ? " is-active" : ""}`}
+                    aria-pressed={filterIndex === index}
+                    onClick={() => setFilterIndex(index)}
                   >
-                    {category.name}
+                    {entry.label}
                   </button>
                 ))}
-              </nav>
-              <div className="home-promo-strip">
-                <div className="home-promo-card home-promo-party">
-                  <div className="home-promo-party-copy">
-                    <p className="customer-eyebrow">Gather well</p>
-                    <h2>Planning a party?</h2>
-                    <p>Order for 10 or more and let a catering manager confirm the details.</p>
-                  </div>
-                  <Link className="button button-primary" href="/party">Plan a party</Link>
-                </div>
-                <div className="home-promo-card home-promo-perks">
-                  <div className="home-promo-perks-copy">
-                    <span className="home-promo-pill">Since 2023</span>
-                    <p>Free delivery over Rs {FREE_DELIVERY_THRESHOLD_INR} · Earn points on every direct order · Coupons at checkout</p>
-                  </div>
-                  <button type="button" className="home-promo-order" onClick={scrollToMenu}>
-                    Order now
-                  </button>
-                </div>
               </div>
-              {favouritesSection}
-              {orderAgainBlock}
-            </section>
-          )}
-
-          <div className="menu-tools">
-            <label className="menu-search">
-              <span className="search-glyph" aria-hidden="true">⌕</span>
-              <span className="sr-only">Search menu</span>
-              <input
-                type="search"
-                placeholder="Search the menu"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </label>
-            <label className="veg-filter">
-              <input
-                type="checkbox"
-                checked={vegOnly}
-                onChange={(event) => setVegOnly(event.target.checked)}
-              />
-              <VegMark isVeg />
-              <span>Veg only</span>
-            </label>
-          </div>
-
-          {visibleCategories.length > 0 && (
-            <nav className="category-tabs" aria-label="Menu categories">
-              {visibleCategories.map((category) => (
-                <button
-                  type="button"
-                  key={category.id}
-                  className={activeCategory === category.id ? "category-tab active" : "category-tab"}
-                  onClick={() => jumpToCategory(category.id)}
-                  aria-current={activeCategory === category.id ? "location" : undefined}
-                >
-                  {category.name}
-                  {!category.available_now && <span className="category-tab-closed">Later</span>}
-                </button>
-              ))}
-            </nav>
-          )}
-          {!browseFirst && orderAgainBlock}
-        </>
-      )}
-
-      <div className="menu-layout" id={browseFirst ? "menu-section" : undefined}>
-        <div className="menu-content">
-          {loading && <MenuSkeleton />}
-          {error && (
-            <div className="customer-error menu-error" role="alert">
-              <h2>Menu unavailable</h2>
-              <p>{error}</p>
-              <Button
-                variant="primary"
-                onClick={() => {
-                  setLoading(true);
-                  setError(null);
-                  setRequestVersion((version) => version + 1);
-                }}
-              >
-                Retry
-              </Button>
             </div>
-          )}
-          {!loading && !error && menu && availableItemCount === 0 && (
-            <div className="customer-empty menu-empty">
-              <h2>This kitchen has no available items right now</h2>
-              <p>Check back soon or choose another nearby kitchen.</p>
-              <Link className="button button-secondary" href="/?change=1">Change kitchen</Link>
-            </div>
-          )}
-          {!loading && !error && menu && availableItemCount > 0 && visibleCategories.length === 0 && (
-            <div className="customer-empty menu-empty">
-              <h2>No dishes match</h2>
-              <p>Try a different search or turn off the veg-only filter.</p>
-            </div>
-          )}
-          {!loading && !error && menu && visibleCategories.map((category, categoryIndex) => (
-            <section
-              className={`menu-category${!category.available_now ? " menu-category-closed" : ""}`}
-              id={`category-${category.id}`}
-              key={category.id}
-              aria-labelledby={`category-title-${category.id}`}
-            >
-              <header className="menu-category-header">
-                <div>
-                  <h2 id={`category-title-${category.id}`}>{category.name}</h2>
-                  <p>
-                    {category.available_now
-                      ? `${category.items.length} ${category.items.length === 1 ? "dish" : "dishes"}`
-                      : servedWindow(category.window_text) ?? "Not serving now"}
-                  </p>
-                </div>
-                {!category.available_now && <span className="category-unavailable">Not serving now</span>}
-              </header>
-              <div className="menu-item-list">
-                {category.items.map((item) => (
+            {loading ? (
+              <MenuSkeleton />
+            ) : filteredItems.length > 0 ? (
+              <div className="landing-grid">
+                {filteredItems.map((item, index) => (
                   <ItemCard
                     key={item.id}
                     item={item}
-                    categoryAvailable={category.available_now && menu.outlet.is_open}
+                    categoryAvailable={menu.outlet.is_open}
                     onOpen={setActiveItem}
                     isFavourite={favouriteIds.has(item.id)}
                     onToggleFavourite={() => toggleFavourite(item.id)}
-                    priority={categoryIndex === 0 && item.id === category.items[0]?.id}
+                    priority={index === 0}
                     outletId={outletId}
+                    tint={TINTS[index % 4]}
                   />
                 ))}
               </div>
-            </section>
-          ))}
-        </div>
-        <aside className="menu-cart-aside" aria-label="Cart summary">
-          <CartSummary />
-        </aside>
-      </div>
-
-      {hydrated && cart.lines.length > 0 && (
-        <Link className="mobile-cart-bar" href="/cart">
-          <span>{cartItemCount(cart.lines)} items</span>
-          <strong>{formatINR(total)}</strong>
-          <span className="mobile-cart-action">View cart <span aria-hidden="true">→</span></span>
-        </Link>
+            ) : (
+              <div className="landing-empty">No dishes match your filters.</div>
+            )}
+            <div className="landing-menu-cta">
+              <p className="landing-gst">All prices incl. 5% GST</p>
+            </div>
+          </div>
+          <div className="hb-checker" aria-hidden="true" />
+        </>
       )}
       <ItemSheet
         key={activeItem?.id ?? "closed"}
@@ -790,11 +518,6 @@ export function MenuScreen({
         isFavourite={activeItem ? favouriteIds.has(activeItem.id) : false}
         onToggleFavourite={() => { if (activeItem) toggleFavourite(activeItem.id); }}
       />
-      {menu && <footer className="customer-footer">
-        <div><strong>Hyderabad Biryani</strong><span>FSSAI {menu.outlet.fssai_number}</span></div>
-        <div><span>Prices include 5% GST</span><Link href="/privacy">Privacy</Link></div>
-        <span>Outlet: {menu.outlet.name}{menu.outlet.address ? ` · ${menu.outlet.address}` : ""}</span>
-      </footer>}
     </Root>
   );
 }

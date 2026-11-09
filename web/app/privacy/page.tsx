@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AccountMenu } from "@/components/customer/AccountMenu";
+import { PageShell } from "@/components/customer/PageShell";
 
 export const metadata = {
   title: "Privacy notice | Hyderabad Biryani",
@@ -8,18 +9,10 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <main className="customer-page privacy-page">
-      <header className="simple-page-header">
-        <Link href="/" className="back-link"><span aria-hidden="true">←</span> Home</Link>
-        <div className="header-end">
-          <Link className="brand-lockup" href="/">
-            <span className="brand-mark" aria-hidden="true">H</span>
-            <span>Hyderabad Biryani</span>
-          </Link>
-          <AccountMenu />
-        </div>
-      </header>
-
+    <PageShell
+      title="Privacy"
+      subtitle="Privacy notice"
+    >
       <article className="privacy-content">
         <p className="customer-eyebrow">Your data</p>
         <h1>Privacy notice</h1>
@@ -115,6 +108,6 @@ export default function PrivacyPage() {
           <Link className="button button-secondary" href="/">Back to ordering</Link>
         </p>
       </article>
-    </main>
+    </PageShell>
   );
 }

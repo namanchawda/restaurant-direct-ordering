@@ -61,7 +61,7 @@ export function HomeHero({ areaName, isOpen, outletName }: { areaName?: string; 
         </h1>
 
         <div className="hb-copy">
-          <p className="hb-tagline">Bold masala.<br />Real dum.</p>
+          <p className="hb-tagline"><span>Bold masala.</span><span>Real dum.</span></p>
           <div className="hb-actions">
             <Link className="hb-btn hb-btn-solid" href="/menu">Order now</Link>
             <Link className="hb-btn hb-btn-ghost" href="/party">Plan a party</Link>
@@ -100,10 +100,9 @@ export function HomeHero({ areaName, isOpen, outletName }: { areaName?: string; 
         </div>
       </div>
 
-      <div className="hb-marquee" aria-hidden="true">
-        <div className="hb-marquee-track">
-          {loop.map((text, index) => <span key={index}>{text}<b>✦</b></span>)}
-        </div>
+      <div className="hb-ribbons" aria-hidden="true">
+        <div className="hb-ribbon hb-ribbon-dark"><div className="hb-marquee-track hb-track-rev">{loop.map((text, index) => <span key={index}>{text}<b>•</b></span>)}</div></div>
+        <div className="hb-ribbon hb-ribbon-light"><div className="hb-marquee-track">{loop.map((text, index) => <span key={index}>{text}<b>•</b></span>)}</div></div>
       </div>
     </section>
   );

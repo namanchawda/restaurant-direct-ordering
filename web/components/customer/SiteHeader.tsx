@@ -136,7 +136,7 @@ export function SiteHeader({ area, onChangeLocation, onOpenCart, search, onSearc
   });
 
   return (
-    <header className="site-header">
+    <header className={`site-header${pathname === "/" ? " site-header-overlay" : ""}`}>
       <div className="site-header-shell">
         <div className="site-header-bar">
           <Link className="site-brand" href="/" aria-label="Hyderabad Biryani, home">

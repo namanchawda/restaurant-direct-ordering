@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Button, Dialog, Skeleton } from "@/components/ui";
+import { AccountMenu } from "@/components/customer/AccountMenu";
 import { api, ApiError, describeApiError } from "@/lib/api";
 import type { MenuItem, OutletMenu, OutletResult } from "@/lib/customer";
 import { formatINR, OUTLET_STORAGE_KEY } from "@/lib/customer";
@@ -42,6 +43,21 @@ function lineKey(line: PartyLine): string {
 
 function itemPrice(item: MenuItem, variantId: string | null): number {
   return item.variants.find((variant) => variant.id === variantId)?.price ?? item.price;
+}
+
+function TopBar() {
+  return (
+    <header className="simple-page-header">
+      <Link href="/menu" className="back-link"><span aria-hidden="true">←</span> Browse menu</Link>
+      <div className="header-end">
+        <Link className="brand-lockup" href="/">
+          <span className="brand-mark" aria-hidden="true">H</span>
+          <span>Hyderabad Biryani</span>
+        </Link>
+        <AccountMenu />
+      </div>
+    </header>
+  );
 }
 
 export function PartyOrderForm() {
@@ -191,13 +207,13 @@ export function PartyOrderForm() {
     }
   }
 
-  if (loading) return <main className="party-page"><Skeleton className="party-skeleton" /><Skeleton className="party-skeleton" /></main>;
+  if (loading) return <main className="party-page"><TopBar /><Skeleton className="party-skeleton" /><Skeleton className="party-skeleton" /></main>;
 
   return (
     <main className="party-page">
+      <TopBar />
       <div className="party-shell">
         <header className="party-header">
-          <Link className="back-link" href="/menu">← Browse menu</Link>
           <p className="eyebrow">Catering for your table</p>
           <h1>Plan a party, calmly.</h1>
           <p>Tell us the shape of the event. A catering manager will confirm the menu and final details.</p>

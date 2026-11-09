@@ -6,7 +6,7 @@ import { CartSummary } from "@/components/customer/CartSummary";
 import { FoodImage } from "@/components/customer/FoodImage";
 import { HeartToggle } from "@/components/customer/HeartToggle";
 import { MenuScreen } from "@/components/customer/MenuScreen";
-import { SiteHeader } from "@/components/customer/SiteHeader";
+import { PageShell } from "@/components/customer/PageShell";
 import { useCart } from "@/components/customer/CartProvider";
 import { api, describeApiError, listFavourites, removeFavourite } from "@/lib/api";
 import {
@@ -209,30 +209,29 @@ export function BrowseHome() {
   ) : null;
 
   return (
-    <main className="customer-page menu-page browse-home hb-themed">
-      <div className="hb-checker" aria-hidden="true" />
-      <SiteHeader
-        area={areaReady ? area : undefined}
-        onChangeLocation={() => setLocationOpen(true)}
-        onOpenCart={() => setCartOpen(true)}
-        search={search}
-        onSearch={setSearch}
-      />
+    <PageShell
+      title="The menu"
+      tone="tan"
+      headerProps={{
+        area: areaReady ? area : undefined,
+        onChangeLocation: () => setLocationOpen(true),
+        onOpenCart: () => setCartOpen(true),
+        search,
+        onSearch: setSearch,
+      }}
+    >
       {loading && <div className="home-loading"><Skeleton className="home-loading-hero" /><Skeleton className="home-loading-line" /><Skeleton className="home-loading-line short" /></div>}
       {error && <div className="customer-error home-load-error" role="alert"><p>{error}</p><Button variant="secondary" onClick={() => setArea({ ...area })}>Try again</Button></div>}
       {outlet && !error && (
-        <div id="hb-menu" className="hb-menu-panel">
-          <MenuScreen
-            outletId={outlet.id}
-            browseFirst
-            onOpenCart={() => setCartOpen(true)}
-            search={search}
-            onSearch={setSearch}
-            favouritesSection={favouritesSection}
-          />
-        </div>
+        <MenuScreen
+          outletId={outlet.id}
+          browseFirst
+          onOpenCart={() => setCartOpen(true)}
+          search={search}
+          onSearch={setSearch}
+          favouritesSection={favouritesSection}
+        />
       )}
-      <div className="hb-checker hb-checker-end" aria-hidden="true" style={{ marginTop: 28 }} />
 
       <Dialog
         open={locationOpen}
@@ -270,6 +269,6 @@ export function BrowseHome() {
       <Dialog open={pendingOutlet !== null} onOpenChange={(open) => { if (!open) setPendingOutlet(null); }} title="Change kitchen?" description="Your current cart belongs to another kitchen.">
         <div className="switch-cart-body"><p>Switching to <strong>{pendingOutlet?.name}</strong> will clear the items in your cart. You can add them again from the new menu.</p><div className="switch-cart-actions"><Button variant="secondary" onClick={() => setPendingOutlet(null)}>Keep current cart</Button><Button variant="primary" onClick={() => pendingOutlet && (changeOutlet(pendingOutlet.id, true), saveOutlet(pendingOutlet))}>Clear cart and switch</Button></div></div>
       </Dialog>
-    </main>
+    </PageShell>
   );
 }

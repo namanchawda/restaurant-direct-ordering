@@ -44,31 +44,47 @@ function LoginEntry() {
   }, [ready, user, roleMismatch, mode, next, openSignIn]);
 
   return (
-    <main className="login-shell">
-      <section className="login-card">
-        <Link className="brand-lockup" href="/">
-          <span className="brand-mark" aria-hidden="true">H</span>
-          <span>Hyderabad Biryani</span>
-        </Link>
-        <div className="login-heading">
-          <h1>Welcome back</h1>
-          <p>Sign in as a customer or as staff.</p>
-        </div>
-        {notice && <p className="notice" role="status">{notice}</p>}
-        {user && roleMismatch && (
-          <Button type="button" variant="secondary" onClick={() => { logout(); router.replace(`/login?mode=${mode}`); }}>
-            Sign out and switch account
-          </Button>
-        )}
-        <Button variant="primary" onClick={() => openSignIn({ mode, redirectTo: next ?? undefined })}>Sign in</Button>
-      </section>
-    </main>
+    <>
+      <header className="simple-page-header">
+        <Link href="/" className="back-link"><span aria-hidden="true">←</span> Home</Link>
+        <div className="header-end" />
+      </header>
+      <main className="login-shell">
+        <section className="login-card">
+          <Link className="brand-lockup" href="/">
+            <span className="brand-mark" aria-hidden="true">H</span>
+            <span>Hyderabad Biryani</span>
+          </Link>
+          <div className="login-heading">
+            <h1>Welcome back</h1>
+            <p>Sign in as a customer or as staff.</p>
+          </div>
+          {notice && <p className="notice" role="status">{notice}</p>}
+          {user && roleMismatch && (
+            <Button type="button" variant="secondary" onClick={() => { logout(); router.replace(`/login?mode=${mode}`); }}>
+              Sign out and switch account
+            </Button>
+          )}
+          <Button variant="primary" onClick={() => openSignIn({ mode, redirectTo: next ?? undefined })}>Sign in</Button>
+        </section>
+      </main>
+    </>
   );
 }
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<main className="login-shell" aria-label="Loading sign-in" />}>
+    <Suspense
+      fallback={
+        <>
+          <header className="simple-page-header">
+            <Link href="/" className="back-link"><span aria-hidden="true">←</span> Home</Link>
+            <div className="header-end" />
+          </header>
+          <main className="login-shell" aria-label="Loading sign-in" />
+        </>
+      }
+    >
       <LoginEntry />
     </Suspense>
   );

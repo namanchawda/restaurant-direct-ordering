@@ -1,4 +1,5 @@
 import { MenuScreen } from "@/components/customer/MenuScreen";
+import { PageShell } from "@/components/customer/PageShell";
 
 export default async function OutletPage({
   params,
@@ -7,9 +8,8 @@ export default async function OutletPage({
 }) {
   const { id } = await params;
   return (
-    <>
-      <h1 className="sr-only">Menu</h1>
+    <PageShell title="The menu" tone="tan">
       <MenuScreen key={id} outletId={id} />
-    </>
+    </PageShell>
   );
 }

@@ -131,10 +131,17 @@ Catering manager endpoints (catering or admin role):
 
 Demo login pointer (development only, from [api/README.md](api/README.md)):
 
+All demo accounts are for local/test environments only. Change or remove these
+credentials before deploying, and do not use them in production.
+
 | Role | Phone | Password |
 | --- | --- | --- |
-| Catering manager | `9000000014` | `DemoCatering!2026` |
+| Customer | `9000000001` | No password; customer demo only |
+| Kitchen — Kondapur | `9000000011` | `KondapurKitchen!2026` |
+| Kitchen — Gachibowli | `9000000012` | `GachibowliKitchen!2026` |
+| Kitchen — Kukatpally | `9000000013` | `KukatpallyKitchen!2026` |
 | Admin | `9000000099` | `DemoAdmin!2026` |
+| Catering manager | `9000000014` | `DemoCatering!2026` |
 
 Catering managers sign in at `/login` and are redirected to `/catering`; kitchen users visiting `/catering` are redirected back to login with a clear message.
 
