@@ -103,7 +103,7 @@ export function OrdersScreen() {
         <EmptyState
           title="Sign in to see your orders"
           description="Start checkout and sign in with your phone number. Your past direct orders will appear here."
-          action={<Link className="button button-primary" href="/">Find a kitchen</Link>}
+          action={<Link className="button button-primary" href="/menu">Find a kitchen</Link>}
         />
       ) : error ? (
         <div className="customer-error orders-error" role="alert">
@@ -116,7 +116,7 @@ export function OrdersScreen() {
         <EmptyState
           title="No orders yet"
           description="When you order direct, you’ll be able to follow it here."
-          action={<Link className="button button-primary" href="/">Browse the menu</Link>}
+          action={<Link className="button button-primary" href="/menu">Browse the menu</Link>}
         />
       ) : (
         <div className="orders-list">

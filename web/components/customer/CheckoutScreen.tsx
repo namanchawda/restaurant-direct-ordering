@@ -507,7 +507,7 @@ export function CheckoutScreen() {
         <EmptyState
           title="Your cart is empty"
           description="Add a dish before continuing to checkout."
-          action={<Link className="button button-primary" href="/">Find a kitchen</Link>}
+          action={<Link className="button button-primary" href="/menu">Find a kitchen</Link>}
         />
       </main>
     );

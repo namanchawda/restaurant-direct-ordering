@@ -18,7 +18,8 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "Menu" },
+  { href: "/", label: "Home" },
+  { href: "/menu", label: "Menu" },
   { href: "/party", label: "Party orders" },
   { href: "/orders", label: "My orders", gated: true },
   { href: "/profile#favourites", label: "Favourites", gated: true },
@@ -54,7 +55,7 @@ function LocationChip({ area, onChange }: { area?: DeliveryArea; onChange?: () =
   return (
     <button type="button" className="site-location" onClick={onChange}>
       <span aria-hidden="true" className="site-location-glyph">⌖</span>
-      <span className="site-location-text">Delivering to {area.name}, Hyderabad</span>
+      <span className="site-location-text">Delivering to {area.name}<span className="site-location-city">, Hyderabad</span></span>
       <u className="site-location-change">Change</u>
     </button>
   );
@@ -95,7 +96,8 @@ export function SiteHeader({ area, onChangeLocation, onOpenCart, search, onSearc
   function isActive(item: NavItem) {
     const [path, anchor] = item.href.split("#");
     if (anchor) return pathname === path && hash === `#${anchor}`;
-    if (path === "/") return pathname === "/" || pathname.startsWith("/outlet");
+    if (path === "/") return pathname === "/";
+    if (path === "/menu") return pathname === "/menu" || pathname.startsWith("/outlet");
     return pathname === path || pathname.startsWith(`${path}/`);
   }
 

@@ -197,7 +197,7 @@ export function PartyOrderForm() {
     <main className="party-page">
       <div className="party-shell">
         <header className="party-header">
-          <Link className="back-link" href="/">← Browse menu</Link>
+          <Link className="back-link" href="/menu">← Browse menu</Link>
           <p className="eyebrow">Catering for your table</p>
           <h1>Plan a party, calmly.</h1>
           <p>Tell us the shape of the event. A catering manager will confirm the menu and final details.</p>

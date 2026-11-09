@@ -237,7 +237,7 @@ export function ProfilePage() {
             <h2>Your favourites</h2>
           </div>
           {favourites.length === 0 && (
-            <EmptyState title="No favourites yet" description="Tap the heart on a dish to save it here. Favourites are never added to your cart by themselves." action={<Link className="button button-primary" href="/">Browse the menu</Link>} />
+            <EmptyState title="No favourites yet" description="Tap the heart on a dish to save it here. Favourites are never added to your cart by themselves." action={<Link className="button button-primary" href="/menu">Browse the menu</Link>} />
           )}
           {favourites.length > 0 && (
             <div className="profile-favourite-grid" role="list" aria-label="Your favourite dishes">

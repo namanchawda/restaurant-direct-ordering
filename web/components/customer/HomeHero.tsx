@@ -63,7 +63,7 @@ export function HomeHero({ areaName, isOpen, outletName }: { areaName?: string; 
         <div className="hb-copy">
           <p className="hb-tagline">Bold masala.<br />Real dum.</p>
           <div className="hb-actions">
-            <a className="hb-btn hb-btn-solid" href="#hb-menu">Order now</a>
+            <Link className="hb-btn hb-btn-solid" href="/menu">Order now</Link>
             <Link className="hb-btn hb-btn-ghost" href="/party">Plan a party</Link>
           </div>
           <p className="hb-status">

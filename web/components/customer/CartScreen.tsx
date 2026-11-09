@@ -242,7 +242,7 @@ export function CartScreen() {
               </Link>
               <Link
                 className="continue-shopping"
-                href={cart.outletId ? `/outlet/${cart.outletId}` : "/"}
+              href={cart.outletId ? `/outlet/${cart.outletId}` : "/menu"}
               >
                 Continue browsing
               </Link>

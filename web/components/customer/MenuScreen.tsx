@@ -40,11 +40,27 @@ const ALLERGEN_LABELS: Record<string, string> = {
   sesame: "Sesame",
 };
 
+function SpiceChili({ active }: { active: boolean }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path
+        d="M7 0.5 C4 0.5 3 4 4 7 C5 10 7 13 9 11 C10 9 11 6 10.5 3 C10 1 7 0.5 7 0.5 Z"
+        fill="currentColor"
+        fillOpacity={active ? 1 : 0.25}
+      />
+    </svg>
+  );
+}
+
 function SpiceLevel({ level }: { level: number }) {
   const label = ["No heat", "Mild", "Medium", "Hot"][Math.max(0, Math.min(3, level))];
   return (
     <span className="spice-level" aria-label={`Spice level: ${label}`}>
-      <span aria-hidden="true">{Array.from({ length: 3 }, (_, index) => index < level ? "🌶" : "·").join("")}</span>
+      <span aria-hidden="true">
+        {Array.from({ length: 3 }, (_, index) => (
+          <SpiceChili key={index} active={index < level} />
+        ))}
+      </span>
       <span>{label}</span>
     </span>
   );

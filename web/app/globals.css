@@ -1761,24 +1761,24 @@ button.dish-row-main:hover .dish-row-copy strong { color: var(--brand-deep); }
 .site-header-row { display: none; background: var(--brand); padding: 8px 20px 12px; gap: 10px; }
 .site-header :focus-visible { outline: 3px solid var(--canvas); outline-offset: 2px; }
 
-@media (max-width: 1439px) {
-  .site-header-bar .site-location-change { display: none; }
+@media (min-width: 1024px) {
+  .site-search { max-width: 220px; }
+  .site-location-city { display: none; }
 }
 
-@media (max-width: 1240px) {
-  .site-header-actions > .site-search,
-  .site-header-actions > .site-location { display: none; }
+@media (min-width: 860px) and (max-width: 1023px) {
+  .site-nav-link { padding: 0 8px; font-size: 14px; }
+  .site-header-actions > .site-search { display: none; }
+  .site-header-row { display: flex; gap: 10px; align-items: center; }
+  .site-header-row .site-search { width: auto; min-width: 140px; }
+}
+
+@media (max-width: 859px) {
+  .site-nav { display: none; }
+  .site-menu { display: block; }
   .site-header-row { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
   .site-header-row .site-search,
   .site-header-row .site-location { width: 100%; }
-}
-
-@media (max-width: 960px) {
-  .site-nav { display: none; }
-  .site-menu { display: block; }
-}
-
-@media (max-width: 640px) {
   .site-header { width: calc(100% - 24px); padding-top: 12px; }
   .site-brand > span:last-child { display: none; }
   .site-header-bar { gap: 8px; padding-left: 10px; }
@@ -1798,6 +1798,7 @@ button.dish-row-main:hover .dish-row-copy strong { color: var(--brand-deep); }
 .home-hero-photo { width: 100%; height: 100%; border-radius: 50%; }
 .home-hero-photo-thumb { position: absolute; z-index: 2; right: -4%; bottom: 2%; width: clamp(92px, 11vw, 132px); aspect-ratio: 1; border: 5px solid #FFF8F1; border-radius: 50%; background: var(--surface); box-shadow: 0 12px 26px rgba(74, 36, 18, .22); }
 .home-hero-thumb-photo { width: 100%; height: 100%; border-radius: 50%; }
+
 .home-hero-edge { position: absolute; z-index: 2; left: -6%; right: -6%; bottom: -54px; height: 120px; background: var(--canvas); border-radius: 55% 45% 0 0 / 100% 100% 0 0; pointer-events: none; }
 .home-discovery, .menu-layout, .customer-footer { width: min(100% - 40px, var(--customer-width)); margin-right: auto; margin-left: auto; }
 .home-discovery { margin-bottom: 10px; }
