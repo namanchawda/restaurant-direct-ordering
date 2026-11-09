@@ -308,3 +308,24 @@
 @media (max-width: 1023px) { .landing-collage-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 767px) { .landing-rewards-inner { grid-template-columns: 1fr; padding: 36px 20px; } .landing-phone { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .landing-tile, .landing-phone { transform: none !important; } }
+
+.landing-kitchens { background: var(--canvas); color: var(--ink); }
+.landing-kitchens-inner { max-width: 1240px; margin: 0 auto; padding: 56px 24px; display: grid; grid-template-columns: 1.1fr .9fr; gap: 36px; align-items: center; }
+.landing-kitchens-list { display: grid; gap: 20px; justify-items: start; }
+.landing-kitchens-list h2 { margin: 0; font-size: clamp(2.4rem, 6vw, 4.6rem); line-height: .95; }
+.landing-kitchen-rows { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; gap: 12px; background: var(--ink); border-radius: 22px; padding: 14px; }
+.landing-kitchen-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 14px; border-radius: 16px; background: #2a1a14; color: var(--canvas); }
+.landing-kitchen-row > div { display: grid; gap: 2px; min-width: 0; }
+.landing-kitchen-row strong { font-family: var(--font-heading); text-transform: uppercase; font-size: 16px; }
+.landing-kitchen-row span, .landing-kitchen-row small { font-size: 14px; line-height: 1.4; }
+.landing-kitchen-row small { color: #d8c6a8; }
+.landing-kitchen-select { flex: none; min-height: 44px; padding: 0 18px; border: 2px solid var(--canvas); border-radius: 999px; background: var(--brand); color: #fff; font-family: var(--font-heading); font-size: 13px; cursor: pointer; }
+.landing-kitchen-select.is-on { background: var(--canvas); color: var(--ink); }
+.landing-kitchens-photo img, .landing-kitchens-photo .landing-story-fallback { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 24px; border: 2px solid var(--ink); }
+.landing-footer { background: var(--ink); color: var(--canvas); }
+.landing-footer-inner { max-width: 1240px; margin: 0 auto; padding: 40px 24px 32px; display: grid; gap: 20px; justify-items: center; text-align: center; }
+.landing-footer-mark { margin: 0; font-family: var(--font-display); font-size: clamp(4rem, 20vw, 14rem); line-height: .85; color: var(--canvas); text-shadow: 0 8px 0 var(--brand-deep); }
+.landing-footer-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; }
+.landing-footer-links a { display: inline-flex; align-items: center; min-height: 44px; color: var(--canvas); font-weight: 700; font-size: 15px; }
+.landing-footer-note { margin: 0; font-size: 14px; color: #d8c6a8; }
+@media (max-width: 767px) { .landing-kitchens-inner { grid-template-columns: 1fr; padding: 36px 20px; } .landing-kitchen-row { flex-wrap: wrap; } }
