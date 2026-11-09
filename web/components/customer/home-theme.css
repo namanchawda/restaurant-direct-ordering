@@ -147,8 +147,6 @@
 .hb-themed .home-loading { padding: 16px 14px; }
 
 /* dialogs render in a portal, so these are not scoped */
-.location-dialog .location-dialog-header h2 { font-family: var(--font-bagel), system-ui, sans-serif; font-weight: 400; color: var(--brand-deep); }
-.location-dialog .location-dialog-script { font-family: var(--font-caveat), cursive; color: var(--brand); }
 .area-chip { border-radius: 999px; transition: transform .15s cubic-bezier(.3, 1.6, .5, 1); }
 .area-chip:hover { transform: translateY(-2px) rotate(-1deg); }
 .area-chip-selected { background: #d6211f; color: #fff1d6; border-color: #d6211f; }

@@ -110,3 +110,81 @@ body .continue-shopping { color: var(--hb-red-deep); font-weight: 700; }
 @media (prefers-reduced-motion: reduce) {
   body .menu-item-card, body .cart-line, body .item-dialog, body .site-cart-count, body .heart-toggle-on { animation: none !important; transition: none !important; }
 }
+
+/* ----- dialogs ----- */
+body .dialog { border: 3px solid var(--ink); border-radius: 28px; box-shadow: 0 8px 0 var(--ink); max-width: 460px; background: var(--canvas); color: var(--ink); overflow: auto; margin: auto; }
+body .dialog::backdrop { background: rgba(27, 15, 11, .55); backdrop-filter: blur(3px); }
+body .dialog-content { display: flex; flex-direction: column; min-height: 0; }
+body .dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-radius: 28px 28px 0 0; background: var(--brand); color: #fff; padding: 16px 20px; }
+body .dialog-header h2 { margin: 0; font-family: var(--font-heading); text-transform: uppercase; font-size: 24px; line-height: 1; color: #fff; letter-spacing: -.01em; }
+body .dialog-header p { margin: 4px 0 0; color: #fff; opacity: .9; font-size: 14px; }
+body .dialog-close { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--ink); background: var(--canvas); color: var(--ink); font-size: 24px; line-height: 1; cursor: pointer; }
+body .dialog-close:hover { background: var(--brand-soft); }
+body .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 20px 20px; border-top: 1px solid var(--line); }
+
+body .dialog[open] { animation: dialog-pop .2s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes dialog-pop { from { transform: scale(.92) translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* Location dialog */
+body .location-dialog { max-width: 460px; }
+body .location-dialog-header { padding: 20px 24px 16px; }
+body .location-dialog-script { font-family: var(--font-script); color: var(--accent); font-size: 30px; font-style: italic; font-weight: 500; line-height: 1; }
+body .location-dialog-close { top: auto; right: auto; position: static; }
+body .location-sheet { padding: 20px 24px 24px; display: grid; gap: 16px; }
+body .location-search { width: 100%; min-height: 44px; border: 2px solid var(--ink); border-radius: 999px; background: var(--accent); color: var(--ink); padding: 0 16px; font-size: 16px; }
+body .location-search::placeholder { color: rgba(27, 15, 11, .6); }
+body .location-search:focus { outline: 3px solid var(--ink); outline-offset: 2px; border-color: var(--ink); }
+body .location-sheet-label { margin: 0; color: var(--ink); font-size: 13px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+body .location-dialog .area-list { gap: 9px; }
+body .area-chip { min-height: 44px; border: 2px solid var(--ink); border-radius: 999px; background: var(--surface); color: var(--ink); padding: 0 16px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background-color 120ms ease, border-color 120ms ease; }
+body .area-chip:hover { border-color: var(--brand); background: var(--brand-soft); }
+body .area-chip-selected { border-color: var(--brand); background: var(--brand); color: #fff; box-shadow: none; }
+body .location-dialog .area-list { gap: 9px; }
+body .location-outlet-list { display: grid; gap: 8px; }
+body .location-outlet-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 2px solid var(--ink); border-radius: 16px; background: #fff; padding: 10px 16px; cursor: pointer; }
+body .location-outlet-row:hover { border-color: var(--brand); }
+body .location-outlet-row span:first-child { display: grid; gap: 2px; min-width: 0; }
+body .location-outlet-row strong { font-size: 15px; }
+body .location-outlet-row small { color: var(--muted); font-size: 13px; }
+body .delivery-ok { border-radius: 999px; background: #E9F3ED; color: #225d43; padding: 4px 12px; font-size: 12px; font-weight: 700; }
+body .delivery-out { border-radius: 999px; background: #f8e9e7; color: #842f2a; padding: 4px 12px; font-size: 12px; font-weight: 700; }
+body .location-signin { margin: 0; text-align: center; font-size: 14px; }
+
+/* Sign-in dialog */
+body .signin-dialog { max-width: 420px; border: 3px solid var(--ink); border-radius: 28px; box-shadow: 0 8px 0 var(--ink); background: var(--canvas); color: var(--ink); margin: auto; overflow: auto; }
+body .signin-dialog::backdrop { background: rgba(27, 15, 11, .55); backdrop-filter: blur(3px); }
+body .signin-content { display: grid; gap: 18px; padding: 0; align-content: start; }
+body .signin-header { position: relative; display: flex; align-items: center; justify-content: center; gap: 16px; border-radius: 28px 28px 0 0; background: var(--brand); color: #fff; padding: 16px 20px; }
+body .signin-title { margin: 0; font-family: var(--font-heading); text-transform: uppercase; font-size: 24px; line-height: 1; color: #fff; letter-spacing: -.01em; }
+body .signin-close { position: absolute; top: 12px; right: 16px; width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--ink); background: var(--canvas); color: var(--ink); font-size: 24px; line-height: 1; cursor: pointer; display: grid; place-items: center; }
+body .signin-close:hover { background: var(--brand-soft); }
+body .signin-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border: 2px solid var(--ink); border-radius: 999px; background: transparent; }
+body .signin-toggle button { min-height: 44px; border: 0; border-radius: 999px; background: transparent; font-family: var(--font-heading); font-size: 15px; font-weight: 800; color: var(--ink); cursor: pointer; }
+body .signin-toggle button[aria-selected="true"] { background: var(--brand); color: #fff; }
+body .signin-toggle button:hover[aria-selected="false"] { background: rgba(27, 15, 11, .1); }
+body .signin-form { display: grid; gap: 14px; }
+body .signin-form .field > span { font-size: 14px; }
+body .signin-form .control { min-height: 44px; border-radius: 14px; border: 2px solid var(--ink); background: #fff; color: var(--ink); padding: 0 16px; font-size: 16px; }
+body .signin-form .control:focus { outline: 3px solid var(--ink); outline-offset: 2px; border-color: var(--ink); }
+body .signin-form .button-primary { width: 100%; min-height: 44px; border-radius: 999px; background: var(--brand); color: #fff; border: 2px solid var(--brand-deep); box-shadow: 0 4px 0 var(--brand-deep); font-family: var(--font-heading); font-size: 15px; font-weight: 800; cursor: pointer; }
+body .signin-form .button-primary:hover { background: var(--brand-deep); }
+body .signin-form .button-quiet { width: 100%; min-height: 44px; border-radius: 999px; border: 2px solid var(--ink); background: #fff; color: var(--ink); font-family: var(--font-heading); font-size: 15px; font-weight: 800; cursor: pointer; }
+body .signin-form .button-quiet:hover { background: var(--canvas); }
+body .signin-hint { margin: 0; color: var(--ink); font-size: 14px; line-height: 1.45; }
+body .notice { margin: 0; padding: 8px 14px; border-radius: 999px; background: var(--accent); color: var(--ink); border: 2px solid var(--ink); font-size: 14px; font-weight: 800; }
+body .form-error { margin: 0; color: #A81B13; font-size: 14px; font-weight: 800; background: #FBE3D8; border: 2px solid var(--ink); padding: 8px 12px; border-radius: 12px; }
+
+/* Cart drawer dialog */
+body .cart-drawer-dialog { border: 3px solid var(--ink); border-radius: 28px; box-shadow: 0 8px 0 var(--ink); max-width: 420px; background: var(--canvas); color: var(--ink); inset: 0 0 0 auto; width: min(420px, 100vw); max-height: none; height: 100dvh; border-radius: 28px 0 0 28px; }
+body .cart-drawer-dialog .dialog-header { background: var(--brand); color: #fff; border-radius: 28px 0 0 0; }
+body .cart-drawer-dialog .dialog-header h2 { font-family: var(--font-heading); text-transform: uppercase; font-size: 24px; color: #fff; }
+
+@media (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
+  body .dialog::backdrop, body .signin-dialog::backdrop { backdrop-filter: none; }
+  body .dialog[open], body .signin-dialog[open] { animation: none !important; }
+}
+
+@media (max-width: 767px) {
+  body .signin-dialog { position: fixed; inset: auto 0 0 0; margin: 0; max-height: 92dvh; border-radius: 28px 28px 0 0; overflow: auto; }
+  body .cart-drawer-dialog { width: 100vw; border-radius: 28px 28px 0 0; }
+}

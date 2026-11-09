@@ -136,10 +136,9 @@ export function SignInPanel({ options, onClose }: { options: SignInOptions; onCl
             <span className="brand-mark" aria-hidden="true">H</span>
             <span>Hyderabad Biryani</span>
           </span>
+          <h2 id="signin-title">Sign in to your account</h2>
           <button type="button" className="signin-close" aria-label="Close sign in" onClick={onClose}>×</button>
         </header>
-
-        <h2 className="signin-title" id="signin-title">Sign in to your account</h2>
 
         <div className="signin-toggle" role="tablist" aria-label="Account type">
           <button type="button" role="tab" id="signin-tab-customer" aria-selected={mode === "customer"} aria-controls="signin-body" onClick={() => switchMode("customer")}>Customer</button>
