@@ -2,6 +2,7 @@ import { SiteHeader } from "@/components/customer/SiteHeader";
 import { HomeHero } from "@/components/customer/HomeHero";
 import { LandingSections } from "@/components/customer/LandingSections";
 import { LandingBuilder } from "@/components/customer/LandingBuilder";
+import { LandingStory } from "@/components/customer/LandingStory";
 import "@/components/customer/home-theme.css";
 import "@/components/customer/components-theme.css";
 
@@ -13,6 +14,7 @@ export default function Home() {
       <HomeHero />
       <LandingSections />
       <LandingBuilder />
+      <LandingStory />
     </main>
   );
 }

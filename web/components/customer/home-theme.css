@@ -256,3 +256,23 @@
 .landing-receipt-link { text-align: center; color: var(--brand-deep); font-weight: 700; font-size: 14px; }
 @media (max-width: 1023px) { .landing-builder-grid { grid-template-columns: 1fr 1fr; } .landing-builder-pot { order: -1; grid-column: 1 / -1; } }
 @media (max-width: 767px) { .landing-builder-grid { grid-template-columns: 1fr; } .landing-builder-inner { padding: 36px 20px; } }
+
+.landing-story { background: var(--ink); color: var(--canvas); }
+.landing-story-inner { max-width: 1240px; margin: 0 auto; padding: 56px 24px; display: grid; grid-template-columns: 1fr 1.15fr; gap: 32px; align-items: center; }
+.landing-story-copy h2 { margin: 0 0 24px; color: var(--canvas); font-size: clamp(2.2rem, 5.5vw, 4rem); line-height: .95; }
+.landing-story-points { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.landing-story-points li { display: grid; gap: 4px; padding-left: 16px; border-left: 4px solid var(--brand); }
+.landing-story-points strong { font-family: var(--font-heading); text-transform: uppercase; font-size: 16px; }
+.landing-story-points span { font-size: 16px; line-height: 1.5; }
+.landing-story-photo img, .landing-story-fallback { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 24px; border: 2px solid var(--canvas); }
+.landing-story-fallback { background: #3a1b14; }
+.landing-season { background: var(--brand); color: #fff; }
+.landing-season-inner { max-width: 1240px; margin: 0 auto; padding: 48px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 28px; }
+.landing-season h2 { margin: 4px 0 8px; color: #fff; font-size: clamp(2.2rem, 5.5vw, 4rem); line-height: .95; }
+.landing-season .scribble { margin: 0; color: var(--accent); }
+.landing-season-text { margin: 0; font-size: 16px; }
+.landing-season-card { display: grid; justify-items: start; gap: 14px; padding: 24px; min-width: min(100%, 320px); background: var(--canvas); color: var(--ink); border: 2px solid var(--ink); border-radius: 24px; box-shadow: 0 6px 0 var(--ink); }
+.landing-season-card strong { font-family: var(--font-heading); font-size: 20px; }
+.landing-season-dot { width: 14px; height: 14px; border-radius: 50%; background: #8a7f78; }
+.landing-season-dot.is-on { background: #1F7A3E; }
+@media (max-width: 767px) { .landing-story-inner { grid-template-columns: 1fr; padding: 36px 20px; } .landing-season-inner { padding: 36px 20px; } }
