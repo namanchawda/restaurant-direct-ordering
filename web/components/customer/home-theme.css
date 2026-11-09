@@ -232,3 +232,27 @@
   .landing-grid { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 14px; padding-bottom: 12px; }
   .landing-card { flex: none; width: min(250px, 80vw); scroll-snap-align: start; }
 }
+
+.landing-builder { background: var(--canvas); color: var(--ink); }
+.landing-builder-inner { max-width: 1240px; margin: 0 auto; padding: 56px 24px; }
+.landing-builder-inner h2 { margin: 0 0 28px; font-size: clamp(2.2rem, 5.5vw, 4rem); line-height: .95; }
+.landing-builder-grid { display: grid; grid-template-columns: 1.1fr .9fr 1fr; gap: 28px; align-items: center; }
+.landing-builder-group { border: 0; margin: 0 0 20px; padding: 0; }
+.landing-builder-group legend { margin-bottom: 10px; font-family: var(--font-heading); font-size: 15px; text-transform: uppercase; }
+.landing-chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.landing-chip { min-height: 44px; padding: 0 16px; border: 2px solid var(--ink); border-radius: 999px; background: #fff; color: var(--ink); font-size: 14px; font-weight: 700; cursor: pointer; }
+.landing-chip.is-on { background: var(--brand); border-color: var(--brand-deep); color: #fff; }
+.landing-builder-pot { display: grid; place-items: center; }
+.landing-builder-pot img { width: 100%; max-width: 340px; height: auto; filter: drop-shadow(0 18px 16px rgba(60, 0, 0, .3)); }
+.landing-receipt { position: relative; padding: 20px 20px 22px; background: #fff; border: 2px solid var(--ink); border-radius: 12px; box-shadow: 0 6px 0 var(--ink); font-family: ui-monospace, "Courier New", monospace; font-size: 14px; display: grid; gap: 8px; }
+.landing-receipt::after { content: ""; position: absolute; left: 0; right: 0; bottom: -10px; height: 10px; background: radial-gradient(circle at 8px 0, transparent 7px, #fff 8px) 0 0 / 16px 10px repeat-x; }
+.landing-receipt-title { margin: 0; font-family: var(--font-heading); text-transform: uppercase; font-size: 15px; }
+.landing-receipt-row { display: flex; justify-content: space-between; gap: 12px; }
+.landing-receipt-total { padding-top: 8px; border-top: 2px dashed var(--ink); font-weight: 800; font-size: 16px; }
+.landing-receipt-note { margin: 0; color: var(--muted); font-size: 14px; }
+.landing-receipt-qty { display: inline-flex; align-items: center; gap: 12px; }
+.landing-receipt-qty button { width: 44px; height: 44px; border: 2px solid var(--ink); border-radius: 50%; background: #fff; font-size: 20px; font-weight: 800; cursor: pointer; }
+.landing-receipt-add { min-height: 48px; border: 2px solid var(--brand-deep); border-radius: 999px; background: var(--brand); color: #fff; font-family: var(--font-heading); font-size: 15px; cursor: pointer; }
+.landing-receipt-link { text-align: center; color: var(--brand-deep); font-weight: 700; font-size: 14px; }
+@media (max-width: 1023px) { .landing-builder-grid { grid-template-columns: 1fr 1fr; } .landing-builder-pot { order: -1; grid-column: 1 / -1; } }
+@media (max-width: 767px) { .landing-builder-grid { grid-template-columns: 1fr; } .landing-builder-inner { padding: 36px 20px; } }
