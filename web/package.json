@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "node scripts/test-cart.mjs && node scripts/test-payment.mjs && node scripts/test-checkout.mjs && node scripts/test-kitchen.mjs && node scripts/test-live-events.mjs && node scripts/test-order-again.mjs && node scripts/test-free-delivery.mjs && node scripts/test-party.mjs && node scripts/test-catering.mjs && node scripts/test-customer-profile.mjs && node scripts/test-estimate-breakdown.mjs && node scripts/test-sign-in.mjs && node scripts/test-welcome.mjs",
+    "audit:ui": "node scripts/audit-ui.mjs",
     "test:cart": "node scripts/test-cart.mjs",
     "test:payment": "node scripts/test-payment.mjs",
     "test:checkout": "node scripts/test-checkout.mjs",

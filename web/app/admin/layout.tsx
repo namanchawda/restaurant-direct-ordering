@@ -1,3 +1,4 @@
+import "@/components/customer/components-theme.css";
 import { RoleGuard } from "@/components/auth/RoleGuard";
 import { AdminShell } from "@/components/admin/AdminShell";
 

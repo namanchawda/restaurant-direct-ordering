@@ -12,6 +12,47 @@ npm test
 
 Focused Node suites cover cart pricing/outlet changes, mocked payments, checkout state, kitchen transitions, live-event reconnect/resync behavior, order-again suggestions, party date/notice logic and guest limits (`test:party`), and catering order sorting and countdown logic (`test:catering`). The browser axe pass uses installed `axe-core` through Playwright against an already-running app.
 
+## UI audit
+
+`web/scripts/audit-ui.mjs` drives the running web app with Playwright and the installed `axe-core` (both resolved from `web/node_modules`, never a CDN). It signs in once per role through the real sign-in panel, then audits every role route at 360×740, 390×844, 768×1024, 1024×768, 1280×800 and 1440×900, and writes `.playwright-mcp/audit/report.md` and `report.json`.
+
+Set the staff passwords in PowerShell first (never commit them):
+
+```powershell
+$env:AUDIT_KITCHEN_PASSWORD = "<kitchen password>"
+$env:AUDIT_ADMIN_PASSWORD = "<admin password>"
+$env:AUDIT_CATERING_PASSWORD = "<catering password>"
+```
+
+Start both servers in two terminals:
+
+```powershell
+cd api
+.\.venv\Scripts\python -m uvicorn app.main:app --reload --port 8010
+```
+
+```powershell
+cd web
+npm run dev
+```
+
+Then run the audit from a third terminal, in `web`:
+
+```powershell
+npm run audit:ui
+```
+
+The customer role signs in with phone `8000000999` and the dev OTP `123456`; staff roles use the env vars above. One item is added to the cart first so `/cart` and `/checkout` have content. A role that is missing its env var, or whose sign-in fails, is reported and skipped; its routes are not audited.
+
+Reading the report:
+
+- `report.md` starts with a summary table: one row per route, one column per viewport. Each cell lists the failing checks with counts and a red mark — `A` horizontal overflow, `B` clipped content, `C` text under 14px, `D` tap targets under 44×44, `E` sticky header over a heading, `F` images, `G` console/network, `H` axe serious/critical, `I` colour contrast. `–` means clean and `ERR` means the route failed to load.
+- The "Top problems" section groups identical selectors across pages and ranks them by how many pages were affected, each with one example route, viewport and the exact selector.
+- `report.json` holds the same data in full (per element, per check) for scripting.
+- `screens/<route>-<width>.png` is a full-page screenshot for every route × viewport that had overflow or clipping.
+- Sign-in storage states are written to `.playwright-mcp/audit/auth-<role>.json`; the whole folder is git-ignored.
+- The script exits non-zero when any horizontal overflow is found, so it can gate a pipeline. It only reads pages: it never starts servers, installs packages or runs the API suite.
+
 ## API
 
 From `api`:
