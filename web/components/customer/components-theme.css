@@ -133,12 +133,13 @@ body .dialog[open] { animation: dialog-pop .2s cubic-bezier(.3, 1.6, .5, 1) both
 body .location-dialog { max-width: 460px; }
 body .location-dialog-header { padding: 20px 24px 16px; }
 body .location-dialog-script { font-family: var(--font-script); color: var(--accent); font-size: 30px; font-style: italic; font-weight: 500; line-height: 1; }
-body .location-dialog-close { top: auto; right: auto; position: static; }
+body .location-dialog-close { top: auto; right: auto; position: static; display: grid; place-items: center; flex: none; width: 44px; height: 44px; border: 2px solid var(--ink); border-radius: 50%; background: transparent; color: var(--ink); font-size: 22px; line-height: 1; cursor: pointer; }
+body .location-dialog-close:hover { background: rgba(27, 15, 11, 0.08); }
 body .location-sheet { padding: 20px 24px 24px; display: grid; gap: 16px; }
 body .location-search { width: 100%; min-height: 44px; border: 2px solid var(--ink); border-radius: 999px; background: var(--accent); color: var(--ink); padding: 0 16px; font-size: 16px; }
 body .location-search::placeholder { color: rgba(27, 15, 11, .6); }
 body .location-search:focus { outline: 3px solid var(--ink); outline-offset: 2px; border-color: var(--ink); }
-body .location-sheet-label { margin: 0; color: var(--ink); font-size: 13px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+body .location-sheet-label { margin: 0; color: var(--ink); font-size: 14px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
 body .location-dialog .area-list { gap: 9px; }
 body .area-chip { min-height: 44px; border: 2px solid var(--ink); border-radius: 999px; background: var(--surface); color: var(--ink); padding: 0 16px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background-color 120ms ease, border-color 120ms ease; }
 body .area-chip:hover { border-color: var(--brand); background: var(--brand-soft); }
@@ -149,9 +150,9 @@ body .location-outlet-row { display: flex; align-items: center; justify-content:
 body .location-outlet-row:hover { border-color: var(--brand); }
 body .location-outlet-row span:first-child { display: grid; gap: 2px; min-width: 0; }
 body .location-outlet-row strong { font-size: 15px; }
-body .location-outlet-row small { color: var(--muted); font-size: 13px; }
-body .delivery-ok { border-radius: 999px; background: #E9F3ED; color: #225d43; padding: 4px 12px; font-size: 12px; font-weight: 700; }
-body .delivery-out { border-radius: 999px; background: #f8e9e7; color: #842f2a; padding: 4px 12px; font-size: 12px; font-weight: 700; }
+body .location-outlet-row small { color: var(--muted); font-size: 14px; }
+body .delivery-ok { border-radius: 999px; background: #E9F3ED; color: #225d43; padding: 4px 12px; font-size: 14px; font-weight: 700; }
+body .delivery-out { border-radius: 999px; background: #f8e9e7; color: #842f2a; padding: 4px 12px; font-size: 14px; font-weight: 700; }
 body .location-signin { margin: 0; text-align: center; font-size: 14px; }
 
 /* Cart drawer dialog */
@@ -505,8 +506,8 @@ body .signin-close {
   position: absolute;
   top: 16px;
   right: 16px;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 2px solid var(--ink);
   background: transparent;
@@ -530,6 +531,7 @@ body .signin-toggle {
 }
 body .signin-toggle button {
   min-height: 44px;
+  min-width: 44px;
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -961,9 +963,23 @@ body .party-choice:has(input:checked) {
   color: #fff;
 }
 body .party-choice input {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--brand);
+  appearance: none;
+  box-sizing: border-box;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: -10px;
+  border: 0;
+  padding: 0;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='10' r='8.5' fill='%23fff' stroke='%231B0F0B' stroke-width='3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 20px 20px;
+  cursor: pointer;
+}
+body .party-choice input:checked {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='10' r='9' fill='%23fff'/%3E%3Cpath d='M5.5 10.5l3 3 6-7' fill='none' stroke='%23E3141B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 body .party-guest-control {
   display: inline-flex;
@@ -1052,7 +1068,7 @@ body .party-suggestion {
   display: block;
   margin-top: 8px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 body .party-item-action {
   display: flex;
@@ -1791,5 +1807,39 @@ body .topbar-menu-panel .user-chip {
   }
   body .topbar-menu-toggle {
     display: inline-flex;
+  }
+}
+
+/* ===== customer UI-audit fixes ===== */
+
+/* party section eyebrows: globals .eyebrow (12px) is shared with kitchen/admin
+   and must not be raised globally, so scope the 14px+ style to party pages */
+body .party-page .party-section-heading .eyebrow,
+body .party-page .party-note .eyebrow,
+body .party-page .party-detail-heading .eyebrow {
+  margin: 0 0 4px;
+  font-family: var(--font-script);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+/* the ≤390px party rule makes every quantity-stepper full width; the cart line
+   needs its stepper content-sized so the 44×44 remove button stays in the row */
+body .cart-line-controls .quantity-stepper {
+  width: auto;
+}
+
+/* anchor jumps: keep headings clear of the sticky header */
+body h1,
+body h2,
+body h3 {
+  scroll-margin-top: 96px;
+}
+@media (max-width: 1279px) {
+  body h1,
+  body h2,
+  body h3 {
+    scroll-margin-top: 160px;
   }
 }

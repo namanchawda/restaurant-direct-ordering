@@ -93,7 +93,7 @@ export function HomeHero({ areaName, isOpen, outletName }: { areaName?: string; 
           <div className="hb-badge" aria-hidden="true">
             <svg viewBox="0 0 120 120">
               <defs><path id="hb-circle" d="M60 60 m-44 0 a44 44 0 1 1 88 0 a44 44 0 1 1 -88 0" /></defs>
-              <text><textPath href="#hb-circle">Dum-cooked daily · Fresh from Kondapur · </textPath></text>
+              <text><textPath href="#hb-circle" textLength="276.46" lengthAdjust="spacingAndGlyphs">Dum-cooked daily · Fresh from Kondapur · </textPath></text>
             </svg>
             <span>Dum</span>
           </div>

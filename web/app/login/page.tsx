@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { useSignIn } from "@/components/auth/SignInProvider";
 import { roleHome, safeNext } from "@/lib/sign-in";
 import type { SignInMode } from "@/lib/sign-in";
+import "@/components/customer/components-theme.css";
 
 function LoginEntry() {
   const { logout, user, ready } = useAuth();

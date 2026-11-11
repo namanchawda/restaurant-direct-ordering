@@ -1,4 +1,5 @@
 import { CheckoutScreen } from "@/components/customer/CheckoutScreen";
+import "@/components/customer/components-theme.css";
 
 export default function CheckoutPage() {
   return (

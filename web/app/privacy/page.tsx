@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { AccountMenu } from "@/components/customer/AccountMenu";
 import { PageShell } from "@/components/customer/PageShell";
+import "@/components/customer/components-theme.css";
+import "@/components/customer/home-theme.css";
 
 export const metadata = {
   title: "Privacy notice | Hyderabad Biryani",
