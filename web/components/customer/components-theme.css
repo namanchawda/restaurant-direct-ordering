@@ -9,9 +9,9 @@
 }
 
 /* ----- shared bits ----- */
-body .customer-eyebrow { font-family: var(--hb-hand); font-size: 1.3rem; font-weight: 600; color: var(--hb-red); text-transform: none; letter-spacing: 0; }
+body .customer-eyebrow { font-family: var(--hb-hand); font-size: 1.3rem; font-weight: 600; color: var(--brand-text); text-transform: none; letter-spacing: 0; }
 body .button-primary, body .menu-add-button, body .sheet-add-button {
-  background: var(--hb-red); color: var(--hb-cream); border: 2px solid var(--hb-red-deep);
+  background: var(--hb-red); color: #FFFFFF; border: 2px solid var(--hb-red-deep);
   font-family: var(--hb-heavy); border-radius: 999px; box-shadow: 0 4px 0 var(--hb-red-deep);
   transition: transform .15s var(--hb-pop), box-shadow .15s;
 }
@@ -28,7 +28,7 @@ body .site-wordmark { color: #fff; font-size: 20px; }
 body .site-nav-link { color: #fff; font-family: var(--font-sans); font-weight: 600; font-size: 15px; text-transform: none; }
 body .site-nav-link:hover { color: #fff; transform: none; border-bottom-color: #fff; }
 body .site-nav-link.is-active { background: transparent; color: #fff; border-bottom: 3px solid #fff; }
-body .site-search, body .site-location { background: rgba(255, 255, 255, .16); border: 1px solid rgba(255, 255, 255, .55); color: #fff; }
+body .site-search, body .site-location { background: transparent; border: 1px solid rgba(255, 255, 255, .55); color: #fff; }
 body .site-search input, body .site-search input::placeholder { color: #fff; }
 body .menu-search { background: var(--hb-saffron); border: 2px solid var(--hb-ink); border-radius: 999px; }
 body .menu-search input { color: var(--hb-ink); font-weight: 600; }
@@ -47,7 +47,7 @@ body .menu-tools .veg-filter { border: 2px solid var(--hb-ink); border-radius: 9
 body .category-tabs { position: sticky; top: 0; z-index: 20; background: var(--hb-cream); padding-block: 10px; }
 body .category-tab, body .home-chip { border: 2px solid var(--hb-red); color: var(--hb-red-deep); background: transparent; border-radius: 999px; font-family: var(--hb-heavy); font-size: .85rem; transition: transform .15s var(--hb-pop), background .15s; }
 body .category-tab:hover, body .home-chip:hover { transform: translateY(-2px) rotate(-1deg); background: var(--hb-saffron); color: var(--hb-ink); }
-body .category-tab.active, body .home-chip.is-active { background: var(--hb-red); color: var(--hb-cream); border-color: var(--hb-red-deep); box-shadow: 0 3px 0 var(--hb-red-deep); }
+body .category-tab.active, body .home-chip.is-active { background: var(--hb-red); color: #FFFFFF; border-color: var(--hb-red-deep); box-shadow: 0 3px 0 var(--hb-red-deep); }
 body .home-chips { display: none; } /* duplicate of the sticky category tabs below */
 body .menu-category-header h2 { font-family: var(--hb-display); font-weight: 400; color: var(--hb-red-deep); font-size: clamp(1.8rem, 4vw, 2.6rem); }
 body .menu-category-header p { font-family: var(--hb-hand); font-size: 1.2rem; color: var(--hb-ink); opacity: .75; }
@@ -65,19 +65,19 @@ body .menu-item-unavailable:hover { transform: none; box-shadow: none; }
 body .unavailable-label { background: var(--hb-ink); color: var(--hb-cream); padding: 2px 10px; border-radius: 999px; font-size: .75rem; font-weight: 700; }
 body .heart-toggle { background: var(--hb-cream); border: 2px solid var(--hb-ink); color: var(--hb-ink); transition: transform .2s var(--hb-pop); }
 body .heart-toggle:hover { transform: scale(1.15); }
-body .heart-toggle-on { background: var(--hb-red); color: var(--hb-cream); animation: hb-heart .5s var(--hb-pop); }
+body .heart-toggle-on { background: var(--hb-red); color: #FFFFFF; animation: hb-heart .5s var(--hb-pop); }
 @keyframes hb-heart { 0% { transform: scale(.6); } 60% { transform: scale(1.35) rotate(-8deg); } 100% { transform: scale(1); } }
 
 /* ----- promo cards ----- */
 body .home-promo-card { border-radius: 24px; border: 2px solid var(--hb-ink); box-shadow: 0 6px 0 var(--hb-ink); }
-body .home-promo-party { background: var(--hb-red); color: var(--hb-cream); }
+body .home-promo-party { background: var(--hb-red); color: #FFFFFF; }
 body .home-promo-party h2 { font-family: var(--hb-display); font-weight: 400; color: var(--hb-cream); }
-body .home-promo-party .home-promo-party-copy p:not(.customer-eyebrow) { color: var(--hb-cream); }
-body .home-promo-party .customer-eyebrow { color: var(--hb-saffron); }
+body .home-promo-party .home-promo-party-copy p:not(.customer-eyebrow) { color: #FFFFFF; }
+body .home-promo-party .customer-eyebrow { color: #FFFFFF; }
 body .home-promo-party .button-primary { background: var(--hb-saffron); color: var(--hb-ink); border-color: var(--hb-ink); box-shadow: 0 4px 0 var(--hb-ink); }
 body .home-promo-perks { background: var(--hb-saffron); color: var(--hb-ink); font-weight: 700; }
 body .home-promo-pill { background: var(--hb-ink); color: var(--hb-saffron); font-family: var(--hb-heavy); }
-body .home-promo-order { background: var(--hb-red); color: var(--hb-cream); border: 2px solid var(--hb-ink); font-family: var(--hb-heavy); transition: transform .2s var(--hb-pop); }
+body .home-promo-order { background: var(--hb-red); color: #FFFFFF; border: 2px solid var(--hb-ink); font-family: var(--hb-heavy); transition: transform .2s var(--hb-pop); }
 body .home-promo-order:hover { transform: rotate(-6deg) scale(1.08); }
 
 /* ----- floating cart bar + footer ----- */
@@ -731,11 +731,11 @@ body .login-heading h1 {
   text-transform: uppercase;
   font-size: clamp(2rem, 7vw, 3.4rem);
   line-height: 1.1;
-  color: var(--canvas);
+  color: var(--brand-text);
 }
 body .login-heading p {
   margin: 8px 0 0;
-  color: rgba(255, 241, 214, 0.8);
+  color: var(--muted);
   font-size: 16px;
 }
 body .login-form {
@@ -825,7 +825,7 @@ body .party-header .eyebrow {
   font-family: var(--font-script);
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--brand);
+  color: var(--brand-text);
   text-transform: none;
   letter-spacing: 0;
 }
@@ -863,7 +863,7 @@ body .party-notice {
   margin: 8px 0 18px;
   border: 2px solid var(--ink);
   border-radius: 999px;
-  background: var(--accent);
+  background: var(--canvas);
   padding: 10px 16px;
   color: var(--brand-deep);
   font-size: 14px;
@@ -1615,7 +1615,7 @@ body .page-band h1 {
 }
 body .page-band p {
   margin: 8px 0 0;
-  color: rgba(235, 217, 184, 0.85);
+  color: #FFFFFF;
   font-size: 16px;
   line-height: 1.5;
 }

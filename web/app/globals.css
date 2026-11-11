@@ -14,6 +14,7 @@
   --muted: #6E5A4F;
   --line: #E8D5BC;
   --brand: #E3141B;
+  --brand-text: #BF0D14;
   --brand-deep: #B00F14;
   --brand-soft: #FBE3D8;
   --accent: #F2B632;
@@ -3153,13 +3154,14 @@ h1, h2 { font-family: var(--font-heading), var(--font-sans); text-transform: upp
 .simple-page-header .account-menu-trigger { color: #fff; }
 .simple-page-header .account-menu-trigger:hover { background: rgba(255, 255, 255, .16); }
 .customer-topbar .picker-cart-note { color: rgba(255, 255, 255, .9); }
-.customer-eyebrow { font-family: var(--font-script); font-size: 1.3rem; font-weight: 600; color: var(--brand); text-transform: none; letter-spacing: 0; }
-.privacy-content .customer-eyebrow { font-family: var(--font-script); font-size: 1.3rem; font-weight: 600; color: var(--brand); text-transform: none; letter-spacing: 0; }
+.customer-eyebrow { font-family: var(--font-script); font-size: 1.3rem; font-weight: 600; color: var(--brand-text); text-transform: none; letter-spacing: 0; }
+.privacy-content .customer-eyebrow { font-family: var(--font-script); font-size: 1.3rem; font-weight: 600; color: var(--brand-text); text-transform: none; letter-spacing: 0; }
 .customer-page .card, .customer-error, .customer-empty { border: 2px solid var(--ink); border-radius: 22px; box-shadow: 0 6px 0 var(--ink); }
 .customer-page .empty-state { border: 2px solid var(--ink); border-radius: 22px; box-shadow: 0 6px 0 var(--ink); }
 .customer-page .button-primary:not(:disabled) { box-shadow: 0 4px 0 var(--brand-deep); font-family: var(--font-heading); }
 .customer-page .button-secondary:not(:disabled) { box-shadow: 0 4px 0 var(--ink); font-family: var(--font-heading); }
-.privacy-content a.button { color: var(--surface); text-decoration: none; }
+.privacy-content a.button-secondary { color: var(--brand-text); text-decoration: none; }
+.privacy-content a.button-primary { color: #FFFFFF; text-decoration: none; }
 
 /* ============================================================================
    Kitchen Display — Landing Page Look

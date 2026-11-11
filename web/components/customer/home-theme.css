@@ -35,7 +35,7 @@
   padding-top: clamp(88px, 10vw, 120px);
   color: var(--hb-cream);
   box-shadow: none;
-  background: radial-gradient(ellipse at 50% 20%, #F0212A 0%, var(--brand) 55%, #C80F16 100%);
+  background: radial-gradient(ellipse at 50% 20%, #E81A22 0%, var(--brand) 55%, #C80F16 100%);
 }
 .hb-panel::before {
   content: "";
@@ -50,6 +50,7 @@
   position: absolute; top: clamp(88px, 10vw, 120px); right: clamp(16px, 5vw, 60px);
   display: flex; align-items: flex-start; gap: 6px;
   font-family: var(--hb-hand); font-size: 1.35rem; line-height: 1.05; max-width: 120px;
+  color: #FFFFFF;
   transform: rotate(-4deg); margin: 0;
 }
 .hb-note svg { width: 40px; flex: none; }
@@ -92,10 +93,10 @@
   border: 2px solid var(--hb-cream); transition: transform .18s cubic-bezier(.3, 1.6, .5, 1), box-shadow .18s;
 }
 .hb-btn-solid { background: var(--hb-cream); color: var(--hb-ink); }
-.hb-btn-ghost { background: transparent; color: var(--hb-cream); }
+.hb-btn-ghost { background: transparent; color: #FFFFFF; }
 .hb-btn:hover { transform: translateY(-3px) rotate(-1.5deg); box-shadow: 0 6px 0 rgba(0, 0, 0, .25); }
 .hb-btn:focus-visible { outline: 3px solid var(--hb-saffron); outline-offset: 3px; }
-.hb-status { display: flex; align-items: center; gap: 8px; margin: 16px 0 0; font-size: .92rem; font-weight: 600; }
+.hb-status { display: flex; align-items: center; gap: 8px; margin: 16px 0 0; font-size: .92rem; font-weight: 600; color: #FFFFFF; }
 .hb-dot { width: 10px; height: 10px; border-radius: 50%; background: #5be37d; box-shadow: 0 0 0 0 rgba(91, 227, 125, .7); animation: hb-ping 1.8s infinite; flex: none; }
 .hb-dot-closed { background: #bbb; animation: none; }
 @keyframes hb-ping { 70% { box-shadow: 0 0 0 9px rgba(91, 227, 125, 0); } 100% { box-shadow: 0 0 0 0 rgba(91, 227, 125, 0); } }
@@ -120,7 +121,7 @@
 .hb-price {
   position: absolute; right: 2%; top: 4%; z-index: 4;
   width: 104px; height: 104px; border-radius: 50%;
-  background: var(--hb-cream); color: var(--brand);
+  background: var(--hb-cream); color: var(--brand-text);
   display: grid; place-content: center; text-align: center; line-height: 1.05;
   transform: rotate(12deg); border: 0; box-shadow: 0 5px 0 rgba(0, 0, 0, .18);
   transition: transform .25s cubic-bezier(.3, 1.8, .5, 1);
@@ -143,10 +144,10 @@
 /* ---------- ribbons ---------- */
 .hb-ribbons { position: relative; height: 150px; margin-top: -40px; z-index: 5; overflow: hidden; }
 .hb-ribbon { position: absolute; left: -5%; width: 110%; overflow: hidden; padding: 14px 0; }
-.hb-ribbon-light { top: 38px; background: var(--hb-cream); color: var(--brand); transform: rotate(-3deg); box-shadow: 0 6px 0 rgba(0, 0, 0, .15); }
+.hb-ribbon-light { top: 38px; background: var(--hb-cream); color: var(--brand-text); transform: rotate(-3deg); box-shadow: 0 6px 0 rgba(0, 0, 0, .15); }
 .hb-ribbon-dark { top: 46px; background: var(--hb-ink); color: var(--hb-cream); transform: rotate(3deg); }
 .hb-ribbon .hb-marquee-track span { font-family: var(--hb-heavy); text-transform: uppercase; font-size: 1.15rem; white-space: nowrap; padding-right: 26px; }
-.hb-ribbon-light .hb-marquee-track b { color: var(--brand); }
+.hb-ribbon-light .hb-marquee-track b { color: var(--brand-text); }
 .hb-track-rev { animation-direction: reverse; }
 .hb-marquee-track { display: flex; width: max-content; animation: hb-scroll 30s linear infinite; }
 .hb-marquee-track b { color: var(--hb-saffron); margin-left: 26px; }
@@ -221,6 +222,7 @@
 .landing-card-photo-fallback { width: 100%; height: 100%; border-radius: 16px; overflow: hidden; }
 .landing-card-name { margin: 6px 0 0; font-family: var(--font-heading); text-transform: uppercase; font-size: 16px; line-height: 1.15; color: inherit; }
 .landing-card-desc { margin: 0; font-size: 14px; line-height: 1.4; opacity: .9; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.landing-tint-red .landing-card-desc { opacity: 1; }
 .landing-card-foot { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
 .landing-card-price { font-family: var(--font-heading); font-size: 18px; }
 .landing-card .veg-mark { background: #fff; }
@@ -279,7 +281,7 @@
 .landing-season { background: var(--brand); color: #fff; }
 .landing-season-inner { max-width: 1240px; margin: 0 auto; padding: 48px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 28px; }
 .landing-season h2 { margin: 4px 0 8px; color: #fff; font-size: clamp(2.2rem, 5.5vw, 4rem); line-height: .95; }
-.landing-season .scribble { margin: 0; color: var(--accent); }
+.landing-season .scribble { margin: 0; color: #FFFFFF; }
 .landing-season-text { margin: 0; font-size: 16px; }
 .landing-season-card { display: grid; justify-items: start; gap: 14px; padding: 24px; min-width: min(100%, 320px); background: var(--canvas); color: var(--ink); border: 2px solid var(--ink); border-radius: 24px; box-shadow: 0 6px 0 var(--ink); }
 .landing-season-card strong { font-family: var(--font-heading); font-size: 20px; }
